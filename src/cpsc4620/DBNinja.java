@@ -51,8 +51,12 @@ public final class DBNinja {
 			conn = DBConnector.make_connection();
 			return true;
 		} catch (SQLException e) {
+			// Test print
+			System.out.println("Could not connect to Database.");
 			return false;
 		} catch (IOException e) {
+			// Test print
+			System.out.println("Could not connect to Database.");
 			return false;
 		}
 
