@@ -72,8 +72,59 @@ public final class DBNinja {
 		 * the necessary data for the delivery, dinein, and pickup tables
 		 * 
 		 */
-	
 
+		String query = "INSERT INTO customer_order (OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES (?, ?, ?, ?, ?, ?)";
+		PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+		pstmt.setInt(1, o.getCustID());
+		pstmt.setTimestamp(2, Timestamp.valueOf(o.getDate()));
+		pstmt.setString(3, o.getOrderType());
+		pstmt.setDouble(4, o.getCustPrice());
+		pstmt.setDouble(5, o.getBusPrice());
+		pstmt.setString(6, o.getOrderType());
+		pstmt.executeUpdate();
+		ResultSet keys = pstmt.getGeneratedKeys();
+		if (keys.next()) {
+			o.setOrderID(keys.getInt(1));
+		}
+
+		// Add to the corresponding subtype table
+		switch (o.getOrderType()) {
+			case dine_in:
+				String dineInQuery = "INSERT INTO dine_in (DineInOrderID, TableNumber) VALUES (?, ?)";
+				PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
+				dineInStmt.setInt(1, o.getOrderID());
+				dineInStmt.setInt(2, ((DineinOrder) o).getTableNum());
+				dineInStmt.executeUpdate();
+				break;
+			case pickup:
+				String pickupQuery = "INSERT INTO pickup (PickupOrderID, PickupTimestamp, PickupCustomerID) VALUES (?, ?, ?)";
+				PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
+				pickupStmt.setInt(1, o.getOrderID());
+				pickupStmt.setTimestamp(2, Timestamp.valueOf(o.getDate()));
+				pickupStmt.setInt(3, o.getCustID());
+				pickupStmt.executeUpdate();
+				break;
+			case delivery:
+				String deliveryQuery = "INSERT INTO delivery (DeliveryOrderID, DeliveryAddress, DeliveryCustomerID) VALUES (?, ?, ?)";
+				PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
+				deliveryStmt.setInt(1, o.getOrderID());
+				deliveryStmt.setString(2, ((DeliveryOrder) o).getAddress());
+				deliveryStmt.setInt(3, o.getCustID());
+				deliveryStmt.executeUpdate();
+				break;
+		}
+
+		// Add pizzas to the order
+		for (Pizza p : o.getPizzaList()) {
+			addPizza(p);
+		}
+
+		// Apply order discounts
+		for (Discount d : o.getDiscountList()) {
+			useOrderDiscount(o, d);
+		}
+
+		conn.close();
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
@@ -87,10 +138,35 @@ public final class DBNinja {
 		 * there are other methods below that may help with that process.
 		 * 
 		 */
-		
-		
-		
-		
+
+		String pizzaQuery = "INSERT INTO pizza (PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?)";
+		PreparedStatement pizzaStmt = conn.prepareStatement(pizzaQuery, Statement.RETURN_GENERATED_KEYS);
+		pizzaStmt.setString(1, p.getCrustType());
+		pizzaStmt.setString(2, p.getSize());
+		pizzaStmt.setDouble(3, p.getCustPrice());
+		pizzaStmt.setDouble(4, p.getBusPrice());
+
+		pizzaStmt.executeUpdate();
+		ResultSet keys = pizzaStmt.getGeneratedKeys();
+		if (keys.next()) {
+			p.setPizzaID(keys.getInt(1));
+		}
+
+		// Add toppings to the pizza
+		boolean[] isDoubledArray = p.getIsDoubleArray();
+		ArrayList<Topping> toppings = p.getToppings();
+		for (int i = 0; i < toppings.size(); i++) {
+			Topping t = toppings.get(i);
+			boolean isDoubled = isDoubledArray[i];
+			useTopping(p, t, isDoubled);
+		}
+
+		// Apply pizza discounts
+		for (Discount d : p.getDiscounts()) {
+			usePizzaDiscount(p, d);
+		}
+
+		conn.close();
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
@@ -108,8 +184,42 @@ public final class DBNinja {
 		 * Ideally, you should't let toppings go negative....but this should be dealt with BEFORE calling this method.
 		 * 
 		 */
-		
-		
+
+		double quantityUsed = 0.0;
+		switch (p.getSize()) {
+			case DBNinja.size_s:
+				quantityUsed = t.getPerAMT();
+				break;
+			case DBNinja.size_m:
+				quantityUsed = t.getMedAMT();
+				break;
+			case DBNinja.size_l:
+				quantityUsed = t.getLgAMT();
+				break;
+			case DBNinja.size_xl:
+				quantityUsed = t.getXLAMT();
+				break;
+		}
+
+		if (isDoubled) {
+			quantityUsed *= 2;
+		}
+
+		// Update topping inventory
+		String updateToppingQuery = "UPDATE topping SET ToppingCurrLvl = ToppingCurrLvl - ? WHERE ToppingID = ?";
+		PreparedStatement updateToppingStmt = conn.prepareStatement(updateToppingQuery);
+		updateToppingStmt.setDouble(1, quantityUsed);
+		updateToppingStmt.setInt(2, t.getTopID());
+		updateToppingStmt.executeUpdate();
+
+		// Connect the topping to the pizza
+		String pizzaToppingQuery = "INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (?, ?)";
+		PreparedStatement pizzaToppingStmt = conn.prepareStatement(pizzaToppingQuery);
+		pizzaToppingStmt.setInt(1, p.getPizzaID());
+		pizzaToppingStmt.setInt(2, t.getTopID());
+		pizzaToppingStmt.executeUpdate();
+
+		conn.close();
 		
 		
 		
@@ -127,8 +237,14 @@ public final class DBNinja {
 		 * 
 		 * What that means will be specific to your implementatinon.
 		 */
-		
-		
+
+		String query = "INSERT INTO pizza_discount (PizzaDiscountPizzaID, PizzaDiscountDiscountID) VALUES (?, ?)";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setInt(1, p.getPizzaID());
+		pstmt.setInt(2, d.getDiscountID());
+		pstmt.executeUpdate();
+
+		conn.close();
 		
 		
 		
@@ -144,9 +260,15 @@ public final class DBNinja {
 		 * You might use this, you might not depending on where / how to want to update
 		 * this information in the dabast
 		 */
-		
-		
-		
+
+
+		String query = "INSERT INTO order_discount (OrderDiscountOrderID, OrderDiscountDiscountID) VALUES (?, ?)";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setInt(1, o.getOrderID());
+		pstmt.setInt(2, d.getDiscountID());
+		pstmt.executeUpdate();
+
+		conn.close();
 		
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
@@ -158,11 +280,19 @@ public final class DBNinja {
 		 * This method adds a new customer to the database.
 		 * 
 		 */
-				
-		
-		
-		
-		
+
+		String query = "INSERT INTO customer (CustomerFirstName, CustomerLastName, CustomerPhone) VALUES (?, ?, ?)";
+		PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+		pstmt.setString(1, c.getFName());
+		pstmt.setString(2, c.getLName());
+		pstmt.setString(3, c.getPhone());
+
+		pstmt.executeUpdate();
+		ResultSet keys = pstmt.getGeneratedKeys();
+		if (keys.next()) {
+			c.setCustID(keys.getInt(1));
+		}
+
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
 
@@ -172,9 +302,15 @@ public final class DBNinja {
 		 * Find the specifed order in the database and mark that order as complete in the database.
 		 * 
 		 */
-		
 
 
+		String query = "UPDATE customer_order SET isComplete = 1 WHERE OrderID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setInt(1, o.getOrderID());
+		pstmt.executeUpdate();
+
+		// Mark the order as complete in the Order object
+		o.setIsComplete(1);
 		
 		
 		
@@ -198,39 +334,192 @@ public final class DBNinja {
 		 * 
 		 */
 
+		ArrayList<Order> orders = new ArrayList<>();
+		String query;
 
+		if (openOnly) {
+			query = "SELECT * FROM customer_order WHERE isComplete = 0 ORDER BY OrderTimestamp DESC";
+		} else {
+			query = "SELECT * FROM customer_order ORDER BY OrderTimestamp DESC";
+		}
+
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
+
+		while (rs.next()) {
+			int orderID = rs.getInt("OrderID");
+			int custID = rs.getInt("OrderCustomerID");
+			String orderType = rs.getString("OrderType");
+			String date = rs.getTimestamp("OrderTimestamp").toString();
+			double custPrice = rs.getDouble("OrderTotalPrice");
+			double busPrice = rs.getDouble("OrderTotalCost");
+			int isComplete = rs.getInt("isComplete");
+
+			Order order;
+			switch (orderType) {
+				case dine_in:
+					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderOrderID = ?";
+					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
+					dineInStmt.setInt(1, orderID);
+					ResultSet dineInRs = dineInStmt.executeQuery();
+					dineInRs.next();
+					int tableNumber = dineInRs.getInt("TableNumber");
+					order = new DineinOrder(orderID, custID, date, custPrice, busPrice, isComplete, tableNumber);
+					break;
+				case pickup:
+					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderOrderID = ?";
+					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
+					pickupStmt.setInt(1, orderID);
+					ResultSet pickupRs = pickupStmt.executeQuery();
+					pickupRs.next();
+					int isPickedUp = pickupRs.getInt("isPickedUp");
+					order = new PickupOrder(orderID, custID, date, custPrice, busPrice, isPickedUp, isComplete);
+					break;
+				case delivery:
+					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderOrderID = ?";
+					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
+					deliveryStmt.setInt(1, orderID);
+					ResultSet deliveryRs = deliveryStmt.executeQuery();
+					deliveryRs.next();
+					String address = deliveryRs.getString("DeliveryAddress");
+					order = new DeliveryOrder(orderID, custID, date, custPrice, busPrice, isComplete, address);
+					break;
+				default:
+					throw new SQLException("Unknown order type: " + orderType);
+			}
+
+			orders.add(order);
+		}
+
+		conn.close();
+		return orders;
 
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return null;
+
 	}
 	
-	public static Order getLastOrder(){
+	public static Order getLastOrder() throws SQLException, IOException{
 		/*
 		 * Query the database for the LAST order added
 		 * then return an Order object for that order.
 		 * NOTE...there should ALWAYS be a "last order"!
 		 */
-		
+		Order order = null;
 
+		String query = "SELECT * FROM customer_order ORDER BY OrderTimestamp DESC LIMIT 1";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
 
+		if (rs.next()) {
+			int orderID = rs.getInt("OrderID");
+			int custID = rs.getInt("OrderCustomerID");
+			String orderType = rs.getString("OrderType");
+			String date = rs.getTimestamp("OrderTimestamp").toString();
+			double custPrice = rs.getDouble("OrderTotalPrice");
+			double busPrice = rs.getDouble("OrderTotalCost");
+			int isComplete = rs.getInt("isComplete");
 
+			switch (orderType) {
+				case dine_in:
+					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderOrderID = ?";
+					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
+					dineInStmt.setInt(1, orderID);
+					ResultSet dineInRs = dineInStmt.executeQuery();
+					dineInRs.next();
+					int tableNumber = dineInRs.getInt("TableNumber");
+					order = new DineinOrder(orderID, custID, date, custPrice, busPrice, isComplete, tableNumber);
+					break;
+				case pickup:
+					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderOrderID = ?";
+					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
+					pickupStmt.setInt(1, orderID);
+					ResultSet pickupRs = pickupStmt.executeQuery();
+					pickupRs.next();
+					int isPickedUp = pickupRs.getInt("isPickedUp");
+					order = new PickupOrder(orderID, custID, date, custPrice, busPrice, isPickedUp, isComplete);
+					break;
+				case delivery:
+					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderOrderID = ?";
+					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
+					deliveryStmt.setInt(1, orderID);
+					ResultSet deliveryRs = deliveryStmt.executeQuery();
+					deliveryRs.next();
+					String address = deliveryRs.getString("DeliveryAddress");
+					order = new DeliveryOrder(orderID, custID, date, custPrice, busPrice, isComplete, address);
+					break;
+				default:
+					throw new SQLException("Unknown order type: " + orderType);
+			}
+		}
 
-		 return null;
+		conn.close();
+		return order;
+
 	}
 
-	public static ArrayList<Order> getOrdersByDate(String date){
+	public static ArrayList<Order> getOrdersByDate(String date) throws SQLException, IOException{
 		/*
 		 * Query the database for ALL the orders placed on a specific date
 		 * and return a list of those orders.
 		 *  
 		 */
-		
+		connect_to_db();
 
+		ArrayList<Order> orders = new ArrayList<>();
+		String query = "SELECT * FROM customer_order WHERE DATE(OrderTimestamp) = ? ORDER BY OrderTimestamp";
 
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setString(1, date);
+		ResultSet rs = pstmt.executeQuery();
 
+		while (rs.next()) {
+			int orderID = rs.getInt("OrderID");
+			int custID = rs.getInt("OrderCustomerID");
+			String orderType = rs.getString("OrderType");
+			String dateTime = rs.getTimestamp("OrderTimestamp").toString();
+			double custPrice = rs.getDouble("OrderTotalPrice");
+			double busPrice = rs.getDouble("OrderTotalCost");
+			int isComplete = rs.getInt("isComplete");
 
-		 return null;
+			Order order;
+			switch (orderType) {
+				case dine_in:
+					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderOrderID = ?";
+					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
+					dineInStmt.setInt(1, orderID);
+					ResultSet dineInRs = dineInStmt.executeQuery();
+					dineInRs.next();
+					int tableNumber = dineInRs.getInt("TableNumber");
+					order = new DineinOrder(orderID, custID, dateTime, custPrice, busPrice, isComplete, tableNumber);
+					break;
+				case pickup:
+					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderOrderID = ?";
+					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
+					pickupStmt.setInt(1, orderID);
+					ResultSet pickupRs = pickupStmt.executeQuery();
+					pickupRs.next();
+					int isPickedUp = pickupRs.getInt("isPickedUp");
+					order = new PickupOrder(orderID, custID, dateTime, custPrice, busPrice, isPickedUp, isComplete);
+					break;
+				case delivery:
+					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderOrderID = ?";
+					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
+					deliveryStmt.setInt(1, orderID);
+					ResultSet deliveryRs = deliveryStmt.executeQuery();
+					deliveryRs.next();
+					String address = deliveryRs.getString("DeliveryAddress");
+					order = new DeliveryOrder(orderID, custID, dateTime, custPrice, busPrice, isComplete, address);
+					break;
+				default:
+					throw new SQLException("Unknown order type: " + orderType);
+			}
+
+			orders.add(order);
+		}
+
+		conn.close();
+		return orders;
 	}
 		
 	public static ArrayList<Discount> getDiscountList() throws SQLException, IOException {
@@ -240,29 +529,70 @@ public final class DBNinja {
 		 * return them in an arrayList of discounts.
 		 * 
 		*/
-		
-		
-		
-		
-		
-		
-		
-		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return null;
+
+		ArrayList<Discount> discounts = new ArrayList<>();
+		String query = "SELECT * FROM discount ORDER BY DiscountName";
+
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
+
+		while (rs.next()) {
+			int discountID = rs.getInt("DiscountID");
+			String discountName = rs.getString("DiscountName");
+			double amount;
+			boolean isPercent;
+
+			if (rs.getObject("PercentDiscount") != null) {
+				amount = rs.getDouble("PercentDiscount");
+				isPercent = true;
+			} else {
+				amount = rs.getDouble("DollarDiscount");
+				isPercent = false;
+			}
+
+			Discount discount = new Discount(discountID, discountName, amount, isPercent);
+			discounts.add(discount);
+		}
+
+		conn.close();
+		return discounts;
 	}
 
-	public static Discount findDiscountByName(String name){
+	public static Discount findDiscountByName(String name) throws SQLException, IOException{
 		/*
 		 * Query the database for a discount using it's name.
 		 * If found, then return an OrderDiscount object for the discount.
 		 * If it's not found....then return null
 		 *  
 		 */
+		connect_to_db();
 
+		String query = "SELECT * FROM discount WHERE DiscountName = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setString(1, name);
+		ResultSet rs = pstmt.executeQuery();
 
+		Discount discount = null;
 
+		if (rs.next()) {
+			int discountID = rs.getInt("DiscountID");
+			String discountName = rs.getString("DiscountName");
+			double amount;
+			boolean isPercent;
 
-		 return null;
+			if (rs.getObject("PercentDiscount") != null) {
+				amount = rs.getDouble("PercentDiscount");
+				isPercent = true;
+			} else {
+				amount = rs.getDouble("DollarDiscount");
+				isPercent = false;
+			}
+
+			discount = new Discount(discountID, discountName, amount, isPercent);
+		}
+
+		conn.close();
+		return discount;
 	}
 
 
@@ -274,29 +604,54 @@ public final class DBNinja {
 		 * 
 		*/
 
+		ArrayList<Customer> customers = new ArrayList<>();
+		String query = "SELECT * FROM customer ORDER BY CustomerLastName, CustomerFirstName, CustomerPhone";
 
-		
-		
-		
-		
-		
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
+
+		while (rs.next()) {
+			int custID = rs.getInt("CustomerID");
+			String fName = rs.getString("CustomerFirstName");
+			String lName = rs.getString("CustomerLastName");
+			String phone = rs.getString("CustomerPhone");
+
+			Customer customer = new Customer(custID, fName, lName, phone);
+			customers.add(customer);
+		}
+
+		conn.close();
+		return customers;
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return null;
 	}
 
-	public static Customer findCustomerByPhone(String phoneNumber){
+	public static Customer findCustomerByPhone(String phoneNumber)throws SQLException, IOException{
 		/*
 		 * Query the database for a customer using a phone number.
 		 * If found, then return a Customer object for the customer.
 		 * If it's not found....then return null
 		 *  
 		 */
-		
+		connect_to_db();
 
+		String query = "SELECT * FROM customer WHERE CustomerPhone = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setString(1, phoneNumber);
+		ResultSet rs = pstmt.executeQuery();
 
+		Customer customer = null;
 
+		if (rs.next()) {
+			int custID = rs.getInt("CustomerID");
+			String fName = rs.getString("CustomerFirstName");
+			String lName = rs.getString("CustomerLastName");
+			String phone = rs.getString("CustomerPhone");
 
-		 return null;
+			customer = new Customer(custID, fName, lName, phone);
+		}
+
+		conn.close();
+		return customer;
 	}
 
 
@@ -308,31 +663,65 @@ public final class DBNinja {
 		 * Don't forget to order the data coming from the database appropriately.
 		 * 
 		 */
+		ArrayList<Topping> toppings = new ArrayList<>();
+		String query = "SELECT * FROM topping ORDER BY ToppingType";
 
-		
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
 
-		
-		
-		
-		
-		
-		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return null;
+		while (rs.next()) {
+			int toppingID = rs.getInt("ToppingID");
+			String toppingType = rs.getString("ToppingType");
+			double toppingPrice = rs.getDouble("ToppingPrice");
+			double toppingCost = rs.getDouble("ToppingCost");
+			double toppingAmountSM = rs.getDouble("ToppingAmountSM");
+			double toppingAmountMD = rs.getDouble("ToppingAmountMD");
+			double toppingAmountLG = rs.getDouble("ToppingAmountLG");
+			double toppingAmountXL = rs.getDouble("ToppingAmountXL");
+			int toppingMinLvl = rs.getInt("ToppingMinLvl");
+			int toppingCurrLvl = rs.getInt("ToppingCurrLvl");
+
+			Topping topping = new Topping(toppingID, toppingType, toppingAmountSM, toppingAmountMD, toppingAmountLG, toppingAmountXL, toppingPrice, toppingCost, toppingMinLvl, toppingCurrLvl);
+			toppings.add(topping);
+		}
+
+		conn.close();
+		return toppings;
 	}
 
-	public static Topping findToppingByName(String name){
+	public static Topping findToppingByName(String name) throws SQLException, IOException{
+		connect_to_db();
 		/*
 		 * Query the database for the topping using it's name.
 		 * If found, then return a Topping object for the topping.
 		 * If it's not found....then return null
 		 *  
 		 */
-		
+		String query = "SELECT * FROM topping WHERE ToppingType = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setString(1, name);
+		ResultSet rs = pstmt.executeQuery();
 
+		Topping topping = null;
 
+		if (rs.next()) {
+			int toppingID = rs.getInt("ToppingID");
+			String toppingType = rs.getString("ToppingType");
+			double toppingPrice = rs.getDouble("ToppingPrice");
+			double toppingCost = rs.getDouble("ToppingCost");
+			double toppingAmountSM = rs.getDouble("ToppingAmountSM");
+			double toppingAmountMD = rs.getDouble("ToppingAmountMD");
+			double toppingAmountLG = rs.getDouble("ToppingAmountLG");
+			double toppingAmountXL = rs.getDouble("ToppingAmountXL");
+			int toppingMinLvl = rs.getInt("ToppingMinLvl");
+			int toppingCurrLvl = rs.getInt("ToppingCurrLvl");
 
+			topping = new Topping(toppingID, toppingType, toppingAmountSM, toppingAmountMD, toppingAmountLG, toppingAmountXL, toppingPrice, toppingCost, toppingMinLvl, toppingCurrLvl);
+		}
 
-		 return null;
+		conn.close();
+		return topping;
+
 	}
 
 
@@ -342,12 +731,13 @@ public final class DBNinja {
 		 * Updates the quantity of the topping in the database by the amount specified.
 		 * 
 		 * */
+		String query = "UPDATE topping SET ToppingCurrLvl = ToppingCurrLvl + ? WHERE ToppingID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setDouble(1, quantity);
+		pstmt.setInt(2, t.getTopID());
+		pstmt.executeUpdate();
 
-
-		
-		
-		
-		
+		conn.close();
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
@@ -358,14 +748,22 @@ public final class DBNinja {
 		 * Query the database fro the base customer price for that size and crust pizza.
 		 * 
 		*/
-		
-		
-		
-		
-		
+		String query = "SELECT BasePrice FROM base_price_cost WHERE SizeType = ? AND CrustType = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setString(1, size);
+		pstmt.setString(2, crust);
+		ResultSet rs = pstmt.executeQuery();
+
+		double basePrice = 0.0;
+
+		if (rs.next()) {
+			basePrice = rs.getDouble("BasePrice");
+		}
+
+		conn.close();
+		return basePrice;
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return 0.0;
 	}
 
 	public static double getBaseBusPrice(String size, String crust) throws SQLException, IOException {
@@ -374,12 +772,21 @@ public final class DBNinja {
 		 * Query the database fro the base business price for that size and crust pizza.
 		 * 
 		*/
-		
-		
-		
-		
-		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-		return 0.0;
+
+		String query = "SELECT BaseCost FROM base_price_cost WHERE SizeType = ? AND CrustType = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setString(1, size);
+		pstmt.setString(2, crust);
+		ResultSet rs = pstmt.executeQuery();
+
+		double baseCost = 0.0;
+
+		if (rs.next()) {
+			baseCost = rs.getDouble("BaseCost");
+		}
+
+		conn.close();
+		return baseCost;
 	}
 
 	public static void printInventory() throws SQLException, IOException {
@@ -391,15 +798,23 @@ public final class DBNinja {
 		 * 
 		 */
 
+		String query = "SELECT ToppingType, ToppingCurrLvl FROM topping ORDER BY ToppingType";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
 
-		
-		
-		
-		
-		
+		System.out.println("Current Topping Inventory:");
+		System.out.println("----------------------------");
+		System.out.println("Topping Type      | Quantity");
+		System.out.println("----------------------------");
+
+		while (rs.next()) {
+			String toppingType = rs.getString("ToppingType");
+			int quantity = rs.getInt("ToppingCurrLvl");
+			System.out.printf("%-18s | %d%n", toppingType, quantity);
+		}
+
+		conn.close();
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
-
-
 	}
 	
 	public static void printToppingPopReport() throws SQLException, IOException
@@ -414,11 +829,22 @@ public final class DBNinja {
 		 * 
 		 */
 
+		String query = "SELECT * FROM ToppingPopularity ORDER BY ToppingCount DESC";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
 
-		
-		
-		
-		
+		System.out.println("Topping Popularity Report:");
+		System.out.println("----------------------------");
+		System.out.println("Topping         | Count");
+		System.out.println("----------------------------");
+
+		while (rs.next()) {
+			String topping = rs.getString("Topping");
+			int count = rs.getInt("ToppingCount");
+			System.out.printf("%-15s | %d%n", topping, count);
+		}
+
+		conn.close();
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
@@ -434,10 +860,25 @@ public final class DBNinja {
 		 * The result should be readable and sorted as indicated in the prompt.
 		 * 
 		 */
-		
-		
-		
-		
+
+		String query = "SELECT * FROM ProfitByPizza ORDER BY Profit DESC";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
+
+		System.out.println("Profit By Pizza Report:");
+		System.out.println("-------------------------------------------------");
+		System.out.println("Size       | Crust        | Profit   | Order Month");
+		System.out.println("-------------------------------------------------");
+
+		while (rs.next()) {
+			String size = rs.getString("Size");
+			String crust = rs.getString("Crust");
+			double profit = rs.getDouble("Profit");
+			String orderMonth = rs.getString("OrderMonth");
+			System.out.printf("%-10s | %-12s | %-8.2f | %s%n", size, crust, profit, orderMonth);
+		}
+
+		conn.close();
 		
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
@@ -453,12 +894,26 @@ public final class DBNinja {
 		 * The result should be readable and sorted as indicated in the prompt.
 		 * 
 		 */
-		
-		
-		
-		
-		
-		
+
+		String query = "SELECT * FROM ProfitByOrderType ORDER BY customerType, Profit DESC";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		ResultSet rs = pstmt.executeQuery();
+
+		System.out.println("Profit By Order Type Report:");
+		System.out.println("-----------------------------------------------------------");
+		System.out.println("Customer Type  | Order Month | Total Order Price | Total Order Cost | Profit");
+		System.out.println("-----------------------------------------------------------");
+
+		while (rs.next()) {
+			String customerType = rs.getString("customerType");
+			String orderMonth = rs.getString("OrderMonth");
+			double totalOrderPrice = rs.getDouble("TotalOrderPrice");
+			double totalOrderCost = rs.getDouble("TotalOrderCost");
+			double profit = rs.getDouble("Profit");
+			System.out.printf("%-15s | %-11s | %-17.2f | %-15.2f | %.2f%n", customerType, orderMonth, totalOrderPrice, totalOrderCost, profit);
+		}
+
+		conn.close();
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION	
 	}
 	
