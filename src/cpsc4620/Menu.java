@@ -86,120 +86,111 @@ public class Menu {
 
 		/*
 		 * EnterOrder should do the following:
-		 * 
+		 *
 		 * Ask if the order is delivery, pickup, or dinein
 		 *   if dine in....ask for table number
 		 *   if pickup...
 		 *   if delivery...
-		 * 
+		 *
 		 * Then, build the pizza(s) for the order (there's a method for this)
 		 *  until there are no more pizzas for the order
 		 *  add the pizzas to the order
 		 *
 		 * Apply order discounts as needed (including to the DB)
-		 * 
+		 *
 		 * return to menu
-		 * 
+		 *
 		 * make sure you use the prompts below in the correct order!
 		 */
+		int orderOption = 0;
 
-		 // User Input Prompts...
+		// User Input Prompts...
 		System.out.println("Is this order for: \n1.) Dine-in\n2.) Pick-up\n3.) Delivery\nEnter the number of your choice:");
-		int orderType = Integer.parseInt(reader.readLine());
-		String orderTypeString;
-		if (orderType == 1) {
-			orderTypeString = DBNinja.dine_in;
-		} else if (orderType == 2) {
-			orderTypeString = DBNinja.pickup;
-		} else {
-			orderTypeString = DBNinja.delivery;
+		String option = reader.readLine();
+		orderOption = Integer.parseInt(option);
+
+		// Error Checking user for order options (Dine-in, Pick-up, Delivery)
+		while (orderOption < 0 || orderOption > 3){
+			System.out.println("Invalid Choice. Please enter a valid choice below.");
+			System.out.println("Is this order for: \n1.) Dine-in\n2.) Pick-up\n3.) Delivery\nEnter the number of your choice:");
+			option = reader.readLine();
+			orderOption = Integer.parseInt(option);
 		}
 
+		// Asking the user if they were an existing customer was not required for DineIn order in the video
+		// but the DineInOrder Class requires a customerID so I decided to ask every order type if they are
+		// an existing customer
 		System.out.println("Is this order for an existing customer? Answer y/n: ");
-		String isExistingCustomer = reader.readLine();
-		Customer customer = null;
-
-		if (isExistingCustomer.equalsIgnoreCase("y")) {
+		String existingCustomer = reader.readLine().toUpperCase();
+		// Error checking user for existing customer options
+		while (!existingCustomer.equals("Y") && !existingCustomer.equals("N")){
+			System.out.println("Invalid Choice. Please enter a valid choice below: ");
+			System.out.println("Is this order for: \n1.) Dine-in\n2.) Pick-up\n3.) Delivery\nEnter the number of your choice:");
+			existingCustomer = reader.readLine().toUpperCase();
+		}
+		Customer customer;
+		if (existingCustomer.equals("Y")) {
 			System.out.println("Here's a list of the current customers: ");
 			viewCustomers();
-			System.out.println("Which customer is this order for? Enter ID Number");
-			int customerID = Integer.parseInt(reader.readLine());
-			customer = DBNinja.getCustomerById(customerID);
-			while (customer == null) {
-				System.out.println("Customer not found. Please try again");
+			System.out.println("Which customer is this order for? Enter ID Number:");
+			String customerID = reader.readLine();
+			int custID = Integer.parseInt(customerID);
+			customer = DBNinja.getCustomerById(custID);
+
+
+			while (customer == null){
+				System.out.println("ERROR: I don't understand your input for: Is this order an existing customer?\n");
+				System.out.println("Please enter a valid ID Number from the list below: ");
 				viewCustomers();
-				System.out.println("Which customer is this order for? Enter ID Number");
-				customerID = Integer.parseInt(reader.readLine());
-				customer = DBNinja.getCustomerById(customerID);
+				System.out.println("Which customer is this order for? Enter ID Number:");
+				customerID = reader.readLine();
+				custID = Integer.parseInt(customerID);
+				customer = DBNinja.getCustomerById(custID);
+				//System.out.println("TEST OUTPUT| Customer details: " + customer.toString());
 			}
-		} else {
+		}else{
+			// If the user is not a existing customer make them a new customer
 			EnterCustomer();
 			viewCustomers();
-			System.out.println("Enter the new customer's ID Number");
-			int customerID = Integer.parseInt(reader.readLine());
-			customer = DBNinja.getCustomerById(customerID);
+			System.out.println("Which customer is this order for? Enter ID Number:");
+			String customerID = reader.readLine();
+			int custID = Integer.parseInt(customerID);
+			customer = DBNinja.getCustomerById(custID);
 		}
 
-		if (customer == null) {
-			System.out.println("Customer information could not be found or created. Returning to menu.");
-			return;
-		}
-
+		// Now that we know who the user is we can finally start determining what they want
 		Order order;
-		if (orderTypeString.equals(DBNinja.dine_in)) {
+		int tableNumber;
+		if (orderOption == 1){
 			System.out.println("What is the table number for this order?");
-			int tableNumber = Integer.parseInt(reader.readLine());
-			// I really hope this newOrderID im pulling off here is not bad practice
-			int newOrderID = DBNinja.getLastOrder().getOrderID();
-			System.out.println("NewORDERID: " + newOrderID);
-			order = new DineinOrder(++newOrderID, customer.getCustID(), "", 0.0, 0.0, 0, tableNumber);
-		} else if (orderTypeString.equals(DBNinja.pickup)) {
-			int newOrderID = DBNinja.getLastOrder().getOrderID();
-			order = new PickupOrder(++newOrderID, customer.getCustID(), "", 0.0, 0.0, 0, 0);
-		} else {
-			System.out.println("What is the House/Apt Number for this order? (e.g., 111)");
-			String houseNumber = reader.readLine();
-			System.out.println("What is the Street for this order? (e.g., Smile Street)");
-			String street = reader.readLine();
-			System.out.println("What is the City for this order? (e.g., Greenville)");
-			String city = reader.readLine();
-			System.out.println("What is the State for this order? (e.g., SC)");
-			String state = reader.readLine();
-			System.out.println("What is the Zip Code for this order? (e.g., 20605)");
-			String zip = reader.readLine();
-			String address = houseNumber + " " + street + ", " + city + ", " + state + " " + zip;
-			order = new DeliveryOrder(0, customer.getCustID(), "", 0.0, 0.0, 0, address);
+			String tableNum = reader.readLine();
+			tableNumber = Integer.parseInt(tableNum);
+			// Table number error checking
+			while (tableNumber < 0){
+				System.out.println("Please enter a table number greater than 0.");
+				tableNum = reader.readLine();
+				tableNumber = Integer.parseInt(tableNum);
+			}
+			order = new DineinOrder(0, customer.getCustID(), "", 0, 0, 0, tableNumber);
 		}
 
-		ArrayList<Pizza> pizzas = new ArrayList<>();
+
+
 		System.out.println("Let's build a pizza!");
-		while (true) {
-			Pizza pizza = buildPizza(order.getOrderID());
-			pizzas.add(pizza);
-			System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
-			String response = reader.readLine();
-			if (response.equals("-1")) break;
-		}
-
-		for (Pizza pizza : pizzas) {
-			order.addPizza(pizza);
-		}
+		System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
 
 		System.out.println("Do you want to add discounts to this order? Enter y/n?");
-		if (reader.readLine().equalsIgnoreCase("y")) {
-			while (true) {
-				System.out.println("Which Order Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
-				int discountID = Integer.parseInt(reader.readLine());
-				if (discountID == -1) break;
-				Discount discount = DBNinja.findDiscountByName(String.valueOf(discountID));
-				if (discount != null) {
-					order.addDiscount(discount);
-				}
-			}
-		}
+		System.out.println("Which Order Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
 
-		DBNinja.addOrder(order);
+		System.out.println("What is the House/Apt Number for this order? (e.g., 111)");
+		System.out.println("What is the Street for this order? (e.g., Smile Street)");
+		System.out.println("What is the City for this order? (e.g., Greenville)");
+		System.out.println("What is the State for this order? (e.g., SC)");
+		System.out.println("What is the Zip Code for this order? (e.g., 20605)");
+
+
 		System.out.println("Finished adding order...Returning to menu...");
+
 	}
 	
 	
@@ -208,7 +199,6 @@ public class Menu {
 		/*
 		 * Simply print out all of the customers from the database. 
 		 */
-
 
 		ArrayList<Customer> customers = DBNinja.getCustomerList();
 		for (Customer c : customers) {
@@ -235,10 +225,11 @@ public class Menu {
 		String[] name = reader.readLine().split(" ");
 		System.out.println("What is this customer's phone number (##########) (No dash/space)");
 		String phone = reader.readLine();
+		// Leave Customer ID as 0 since the DB will handle assigning the correct Customer ID (Auto Increment)
 		Customer customer = new Customer(0, name[0], name[1], phone);
 		DBNinja.addCustomer(customer);
 		// Test output
-		System.out.println("New Customer Added!");
+		System.out.println("New Customer Added! Customer ID: " + customer.getCustID());
 	}
 
 	// View any orders that are not marked as completed

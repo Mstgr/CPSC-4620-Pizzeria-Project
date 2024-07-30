@@ -290,9 +290,10 @@ public final class DBNinja {
 		pstmt.setString(1, c.getFName());
 		pstmt.setString(2, c.getLName());
 		pstmt.setString(3, c.getPhone());
-
 		pstmt.executeUpdate();
+
 		ResultSet keys = pstmt.getGeneratedKeys();
+
 		if (keys.next()) {
 			c.setCustID(keys.getInt(1));
 		}
