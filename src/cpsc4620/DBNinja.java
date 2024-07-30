@@ -44,7 +44,11 @@ public final class DBNinja {
 
 
 
-	
+	// I think all the methods in DBNinja could technically work but,
+	// this is a warning that they have not been testing nearly enough
+	// as they should so please do not have high expectations
+	// Life happened this past weekend and this is just the best I
+	// could throw together during this time.
 	private static boolean connect_to_db() throws SQLException, IOException {
 
 		try {
@@ -405,9 +409,13 @@ public final class DBNinja {
 		 * then return an Order object for that order.
 		 * NOTE...there should ALWAYS be a "last order"!
 		 */
+		connect_to_db();
 		Order order = null;
 
-		String query = "SELECT * FROM customer_order ORDER BY OrderTimestamp DESC LIMIT 1";
+		// Decided to ORDER BY OrderID because it is more reliable than the timestamp
+		// and by doing it this way I can use it in EnterOrder() to determine the newest
+		// orderID
+		String query = "SELECT * FROM customer_order ORDER BY OrderID DESC LIMIT 1";
 		PreparedStatement pstmt = conn.prepareStatement(query);
 		ResultSet rs = pstmt.executeQuery();
 
@@ -418,7 +426,7 @@ public final class DBNinja {
 			String date = rs.getTimestamp("OrderTimestamp").toString();
 			double custPrice = rs.getDouble("OrderTotalPrice");
 			double busPrice = rs.getDouble("OrderTotalCost");
-			int isComplete = rs.getInt("isComplete");
+			int isComplete = rs.getInt("OrderisComplete");
 
 			switch (orderType) {
 				case dine_in:
@@ -1005,6 +1013,27 @@ public final class DBNinja {
 					return false;
 			}
 		}
+	}
+
+	// Helper function to get customer by their ID for the Existing customer prompt
+	public static Customer getCustomerById(int customerID) throws SQLException, IOException {
+		connect_to_db();
+		Customer customer = null;
+
+		String query = "SELECT * FROM customer WHERE CustomerID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setInt(1, customerID);
+		ResultSet rs = pstmt.executeQuery();
+
+		if (rs.next()) {
+			String firstName = rs.getString("CustomerFirstName");
+			String lastName = rs.getString("CustomerLastName");
+			String phone = rs.getString("CustomerPhone");
+			customer = new Customer(customerID, firstName, lastName, phone);
+		}
+
+		conn.close();
+		return customer;
 	}
 
 

@@ -28,6 +28,10 @@ public class Menu {
 
 	public static BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
+	// I apologize in advance for this mess
+	// Do not have high expectations
+	// Life happened this weekend so this is the best I could throw together
+	// during this time
 	public static void main(String[] args) throws SQLException, IOException {
 		
 
@@ -111,28 +115,47 @@ public class Menu {
 			orderTypeString = DBNinja.delivery;
 		}
 
-		
 		System.out.println("Is this order for an existing customer? Answer y/n: ");
 		String isExistingCustomer = reader.readLine();
-		Customer customer;
+		Customer customer = null;
+
 		if (isExistingCustomer.equalsIgnoreCase("y")) {
 			System.out.println("Here's a list of the current customers: ");
 			viewCustomers();
-			System.out.println("Which customer is this order for? Enter ID Number:");
+			System.out.println("Which customer is this order for? Enter ID Number");
 			int customerID = Integer.parseInt(reader.readLine());
-			customer = DBNinja.findCustomerByPhone(String.valueOf(customerID));
+			customer = DBNinja.getCustomerById(customerID);
+			while (customer == null) {
+				System.out.println("Customer not found. Please try again");
+				viewCustomers();
+				System.out.println("Which customer is this order for? Enter ID Number");
+				customerID = Integer.parseInt(reader.readLine());
+				customer = DBNinja.getCustomerById(customerID);
+			}
 		} else {
 			EnterCustomer();
-			customer = DBNinja.findCustomerByPhone("0000000000");
+			viewCustomers();
+			System.out.println("Enter the new customer's ID Number");
+			int customerID = Integer.parseInt(reader.readLine());
+			customer = DBNinja.getCustomerById(customerID);
+		}
+
+		if (customer == null) {
+			System.out.println("Customer information could not be found or created. Returning to menu.");
+			return;
 		}
 
 		Order order;
 		if (orderTypeString.equals(DBNinja.dine_in)) {
 			System.out.println("What is the table number for this order?");
 			int tableNumber = Integer.parseInt(reader.readLine());
-			order = new DineinOrder(0, customer.getCustID(), "", 0.0, 0.0, 0, tableNumber);
+			// I really hope this newOrderID im pulling off here is not bad practice
+			int newOrderID = DBNinja.getLastOrder().getOrderID();
+			System.out.println("NewORDERID: " + newOrderID);
+			order = new DineinOrder(++newOrderID, customer.getCustID(), "", 0.0, 0.0, 0, tableNumber);
 		} else if (orderTypeString.equals(DBNinja.pickup)) {
-			order = new PickupOrder(0, customer.getCustID(), "", 0.0, 0.0, 0, 0);
+			int newOrderID = DBNinja.getLastOrder().getOrderID();
+			order = new PickupOrder(++newOrderID, customer.getCustID(), "", 0.0, 0.0, 0, 0);
 		} else {
 			System.out.println("What is the House/Apt Number for this order? (e.g., 111)");
 			String houseNumber = reader.readLine();
@@ -149,12 +172,13 @@ public class Menu {
 		}
 
 		ArrayList<Pizza> pizzas = new ArrayList<>();
+		System.out.println("Let's build a pizza!");
 		while (true) {
+			Pizza pizza = buildPizza(order.getOrderID());
+			pizzas.add(pizza);
 			System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
 			String response = reader.readLine();
 			if (response.equals("-1")) break;
-			Pizza pizza = buildPizza(order.getOrderID());
-			pizzas.add(pizza);
 		}
 
 		for (Pizza pizza : pizzas) {
@@ -213,7 +237,8 @@ public class Menu {
 		String phone = reader.readLine();
 		Customer customer = new Customer(0, name[0], name[1], phone);
 		DBNinja.addCustomer(customer);
-
+		// Test output
+		System.out.println("New Customer Added!");
 	}
 
 	// View any orders that are not marked as completed
@@ -387,7 +412,11 @@ public class Menu {
 		System.out.println("Enter the corresponding number: ");
 		String crustChoice = reader.readLine();
 
-		Pizza pizza = new Pizza(0, sizeChoice, crustChoice, orderID, "in progress", "", 0.0, 0.0);
+
+		double baseCusPrice = DBNinja.getBaseCustPrice(sizeChoice, crustChoice);
+		double baseBusPrice = DBNinja.getBaseBusPrice(sizeChoice, crustChoice);
+
+		Pizza pizza = new Pizza(0, sizeChoice, crustChoice, orderID, "in progress", "", baseCusPrice, baseBusPrice);
 		DBNinja.addPizza(pizza);
 
 		while (true) {
