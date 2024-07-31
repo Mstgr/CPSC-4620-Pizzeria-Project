@@ -77,18 +77,28 @@ public final class DBNinja {
 		 * 
 		 */
 
-		String query = "INSERT INTO customer_order (OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES (?, ?, ?, ?, ?, ?)";
+		String query = "INSERT INTO customer_order (OrderCustomerID, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 		pstmt.setInt(1, o.getCustID());
-		pstmt.setTimestamp(2, Timestamp.valueOf(o.getDate()));
-		pstmt.setString(3, o.getOrderType());
-		pstmt.setDouble(4, o.getCustPrice());
-		pstmt.setDouble(5, o.getBusPrice());
-		pstmt.setString(6, o.getOrderType());
+		pstmt.setString(2, o.getOrderType());
+		pstmt.setDouble(3, o.getCustPrice());
+		pstmt.setDouble(4, o.getBusPrice());
+		pstmt.setString(5, o.getOrderType());
 		pstmt.executeUpdate();
+
+		// Let the database handle giving the Order an ID
 		ResultSet keys = pstmt.getGeneratedKeys();
 		if (keys.next()) {
 			o.setOrderID(keys.getInt(1));
+		}
+
+		// Let the database handle giving the Order a timestamp
+		String timestampQuery = "SELECT OrderTimestamp FROM customer_order WHERE OrderID = ?";
+		PreparedStatement tsPstmt = conn.prepareStatement(timestampQuery);
+		tsPstmt.setInt(1, o.getOrderID());
+		ResultSet tsRs = tsPstmt.executeQuery();
+		if (tsRs.next()) {
+			o.setDate(tsRs.getString(1));
 		}
 
 		// Add to the corresponding subtype table

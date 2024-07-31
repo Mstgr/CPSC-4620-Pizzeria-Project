@@ -137,7 +137,6 @@ public class Menu {
 			int custID = Integer.parseInt(customerID);
 			customer = DBNinja.getCustomerById(custID);
 
-
 			while (customer == null){
 				System.out.println("ERROR: I don't understand your input for: Is this order an existing customer?\n");
 				System.out.println("Please enter a valid ID Number from the list below: ");
@@ -172,21 +171,41 @@ public class Menu {
 				tableNumber = Integer.parseInt(tableNum);
 			}
 			order = new DineinOrder(0, customer.getCustID(), "", 0, 0, 0, tableNumber);
+
+			// Pickup Order option
+		}else if (orderOption == 2){
+			order = new PickupOrder(0, customer.getCustID(), "", 0, 0, 0, 0);
+		}else{
+			System.out.println("What is the House/Apt Number for this order? (e.g., 111)");
+			String houseNumber = reader.readLine();
+			System.out.println("What is the Street for this order? (e.g., Smile Street)");
+			String streetName = reader.readLine();
+			System.out.println("What is the City for this order? (e.g., Greenville)");
+			String cityName = reader.readLine();
+			System.out.println("What is the State for this order? (e.g., SC)");
+			String stateName = reader.readLine();
+			System.out.println("What is the Zip Code for this order? (e.g., 20605)");
+			String zipCode = reader.readLine();
+			String customerAddress = houseNumber + " " + streetName + ", " + cityName + ", " + stateName + " " + zipCode;
+			order = new DeliveryOrder(0, customer.getCustID(), "", 0, 0, 0, customerAddress);
 		}
 
+		DBNinja.addOrder(order);
+		// Order just got added Testing with this output here
+		// Timestamp now gets added automatically -> It works now :)
+		System.out.println("Current Order: " + order.getOrderID() + " Order Timestamp: " + order.getDate());
 
 
 		System.out.println("Let's build a pizza!");
+		buildPizza(order.getOrderID());
+
+
 		System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
 
 		System.out.println("Do you want to add discounts to this order? Enter y/n?");
 		System.out.println("Which Order Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
 
-		System.out.println("What is the House/Apt Number for this order? (e.g., 111)");
-		System.out.println("What is the Street for this order? (e.g., Smile Street)");
-		System.out.println("What is the City for this order? (e.g., Greenville)");
-		System.out.println("What is the State for this order? (e.g., SC)");
-		System.out.println("What is the Zip Code for this order? (e.g., 20605)");
+
 
 
 		System.out.println("Finished adding order...Returning to menu...");
@@ -199,7 +218,6 @@ public class Menu {
 		/*
 		 * Simply print out all of the customers from the database. 
 		 */
-
 		ArrayList<Customer> customers = DBNinja.getCustomerList();
 		for (Customer c : customers) {
 			System.out.println(c);
