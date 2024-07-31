@@ -195,8 +195,10 @@ public class Menu {
 		// Timestamp now gets added automatically -> It works now :)
 		System.out.println("Current Order: " + order.getOrderID() + " Order Timestamp: " + order.getDate());
 
-
+		// Currently working here
 		System.out.println("Let's build a pizza!");
+		// Test Output
+		System.out.println("FOR CUSTOMER: " + order.getCustID() + " ORDER NUMBER: " + order.getOrderID());
 		buildPizza(order.getOrderID());
 
 		System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
@@ -418,7 +420,26 @@ public class Menu {
 		System.out.println("3. " + DBNinja.size_l);
 		System.out.println("4. " + DBNinja.size_xl);
 		System.out.println("Enter the corresponding number: ");
+		// Implement Error Checking Later
 		String sizeChoice = reader.readLine();
+		int pizzaSizeChoice = Integer.parseInt(sizeChoice);
+
+		switch (pizzaSizeChoice) {
+			case 1:
+				sizeChoice = DBNinja.size_s;
+				break;
+			case 2:
+				sizeChoice = DBNinja.size_m;
+				break;
+			case 3:
+				sizeChoice = DBNinja.size_l;
+				break;
+			case 4:
+				sizeChoice = DBNinja.size_xl;
+				break;
+			default:
+				throw new IllegalArgumentException("Invalid size choice");
+		}
 
 		System.out.println("What crust for this pizza?");
 		System.out.println("1. " + DBNinja.crust_thin);
@@ -426,12 +447,31 @@ public class Menu {
 		System.out.println("3. " + DBNinja.crust_pan);
 		System.out.println("4. " + DBNinja.crust_gf);
 		System.out.println("Enter the corresponding number: ");
+
+		// Implement Error Checking Later
 		String crustChoice = reader.readLine();
+		int pizzaCrustChoice = Integer.parseInt(crustChoice);
 
+		switch (pizzaCrustChoice) {
+			case 1:
+				crustChoice = DBNinja.crust_thin;
+				break;
+			case 2:
+				crustChoice = DBNinja.crust_orig;
+				break;
+			case 3:
+				crustChoice = DBNinja.crust_pan;
+				break;
+			case 4:
+				crustChoice = DBNinja.crust_gf;
+				break;
+			default:
+				throw new IllegalArgumentException("Invalid crust choice");
+		}
 
+		// Get the base Price and Cost for the pizza
 		double baseCusPrice = DBNinja.getBaseCustPrice(sizeChoice, crustChoice);
 		double baseBusPrice = DBNinja.getBaseBusPrice(sizeChoice, crustChoice);
-
 
 		Pizza pizza = new Pizza(0, sizeChoice, crustChoice, orderID, "in progress", "", baseCusPrice, baseBusPrice);
 		DBNinja.addPizza(pizza);

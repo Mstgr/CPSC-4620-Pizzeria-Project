@@ -43,7 +43,7 @@ CREATE TABLE pizza (
     PizzaCrustType VARCHAR(50) NOT NULL,
     OrderID INT NOT NULL,
     PizzaState VARCHAR(50),
-    PizzaTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    PizzaTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, -- Called Pizza Date in the Pizza Class
     PizzaTotalPrice DECIMAL(10, 2),
     PizzaTotalCost DECIMAL(10, 2),
     FOREIGN KEY (PizzaCrustType, PizzaSizeType) REFERENCES base_price_cost(CrustType, SizeType),

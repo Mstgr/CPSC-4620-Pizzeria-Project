@@ -15,8 +15,7 @@ public class Pizza
 	private boolean[] isToppingDoubled;//each index in this array will represent whether the topping at Toppings.get(index) is doubled.
 	private ArrayList<Discount> Discounts;
 	
-	public Pizza(int pizzaID, String size, String crustType, int orderID, String pizzaState, String pizzaDate,
-			double custPrice, double busPrice) {
+	public Pizza(int pizzaID, String size, String crustType, int orderID, String pizzaState, String pizzaDate, double custPrice, double busPrice) {
 		PizzaID = pizzaID;
 		CrustType = crustType;
 		Size = size;

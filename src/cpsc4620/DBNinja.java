@@ -153,14 +153,17 @@ public final class DBNinja {
 		 * 
 		 */
 
-		String pizzaQuery = "INSERT INTO pizza (PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?)";
+		String pizzaQuery = "INSERT INTO pizza (PizzaSizeType, PizzaCrustType, OrderID, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement pizzaStmt = conn.prepareStatement(pizzaQuery, Statement.RETURN_GENERATED_KEYS);
 		pizzaStmt.setString(1, p.getSize());
 		pizzaStmt.setString(2, p.getCrustType());
-		pizzaStmt.setDouble(3, p.getCustPrice());
-		pizzaStmt.setDouble(4, p.getBusPrice());
+		pizzaStmt.setInt(3, p.getOrderID());
+		pizzaStmt.setDouble(4, p.getCustPrice());
+		pizzaStmt.setDouble(5, p.getBusPrice());
 
-		// Let the database handle gicing the Pizza an ID
+		// Test Output
+		System.out.println("Pizza SQL QUERY: " + pizzaStmt);
+		// Let the database handle giving the Pizza an ID
 		pizzaStmt.executeUpdate();
 		ResultSet keys = pizzaStmt.getGeneratedKeys();
 		if (keys.next()) {
