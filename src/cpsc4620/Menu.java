@@ -199,8 +199,15 @@ public class Menu {
 		System.out.println("Let's build a pizza!");
 		buildPizza(order.getOrderID());
 
-
 		System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
+		String stopInput = reader.readLine();;
+		int stopPizzaInput = Integer.parseInt(stopInput);;
+		while (stopPizzaInput != -1) {
+			System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
+			buildPizza(order.getOrderID());
+			stopInput = reader.readLine();
+			stopPizzaInput = Integer.parseInt(stopInput);
+		}
 
 		System.out.println("Do you want to add discounts to this order? Enter y/n?");
 		System.out.println("Which Order Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
@@ -424,6 +431,7 @@ public class Menu {
 
 		double baseCusPrice = DBNinja.getBaseCustPrice(sizeChoice, crustChoice);
 		double baseBusPrice = DBNinja.getBaseBusPrice(sizeChoice, crustChoice);
+
 
 		Pizza pizza = new Pizza(0, sizeChoice, crustChoice, orderID, "in progress", "", baseCusPrice, baseBusPrice);
 		DBNinja.addPizza(pizza);

@@ -155,15 +155,25 @@ public final class DBNinja {
 
 		String pizzaQuery = "INSERT INTO pizza (PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?)";
 		PreparedStatement pizzaStmt = conn.prepareStatement(pizzaQuery, Statement.RETURN_GENERATED_KEYS);
-		pizzaStmt.setString(1, p.getCrustType());
-		pizzaStmt.setString(2, p.getSize());
+		pizzaStmt.setString(1, p.getSize());
+		pizzaStmt.setString(2, p.getCrustType());
 		pizzaStmt.setDouble(3, p.getCustPrice());
 		pizzaStmt.setDouble(4, p.getBusPrice());
 
+		// Let the database handle gicing the Pizza an ID
 		pizzaStmt.executeUpdate();
 		ResultSet keys = pizzaStmt.getGeneratedKeys();
 		if (keys.next()) {
 			p.setPizzaID(keys.getInt(1));
+		}
+
+		// Let the database handle giving the Pizza a date (timestamp)
+		String timestampQuery = "SELECT PizzaTimestamp FROM pizza WHERE PizzaID = ?";
+		PreparedStatement tsPstmt = conn.prepareStatement(timestampQuery);
+		tsPstmt.setInt(1, p.getPizzaID());
+		ResultSet tsRs = tsPstmt.executeQuery();
+		if (tsRs.next()) {
+			p.setPizzaDate(tsRs.getString(1));
 		}
 
 		// Add toppings to the pizza
