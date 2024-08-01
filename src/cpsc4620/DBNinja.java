@@ -153,13 +153,14 @@ public final class DBNinja {
 		 * 
 		 */
 
-		String pizzaQuery = "INSERT INTO pizza (PizzaSizeType, PizzaCrustType, OrderID, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?, ?)";
+		String pizzaQuery = "INSERT INTO pizza (PizzaSizeType, PizzaCrustType, PizzaState, OrderID, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?, ?, ?)";
 		PreparedStatement pizzaStmt = conn.prepareStatement(pizzaQuery, Statement.RETURN_GENERATED_KEYS);
 		pizzaStmt.setString(1, p.getSize());
 		pizzaStmt.setString(2, p.getCrustType());
-		pizzaStmt.setInt(3, p.getOrderID());
-		pizzaStmt.setDouble(4, p.getCustPrice());
-		pizzaStmt.setDouble(5, p.getBusPrice());
+		pizzaStmt.setString(3, p.getPizzaState());
+		pizzaStmt.setInt(4, p.getOrderID());
+		pizzaStmt.setDouble(5, p.getCustPrice());
+		pizzaStmt.setDouble(6, p.getBusPrice());
 
 		// Test Output
 		System.out.println("Pizza SQL QUERY: " + pizzaStmt);
@@ -332,18 +333,14 @@ public final class DBNinja {
 		 */
 
 
-		String query = "UPDATE customer_order SET isComplete = 1 WHERE OrderID = ?";
+		String query = "UPDATE customer_order SET OrderIsComplete = 1 WHERE OrderID = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
 		pstmt.setInt(1, o.getOrderID());
 		pstmt.executeUpdate();
 
 		// Mark the order as complete in the Order object
 		o.setIsComplete(1);
-		
-		
-		
-		
-		
+		conn.close();
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
 
@@ -366,7 +363,7 @@ public final class DBNinja {
 		String query;
 
 		if (openOnly) {
-			query = "SELECT * FROM customer_order WHERE isComplete = 0 ORDER BY OrderTimestamp DESC";
+			query = "SELECT * FROM customer_order WHERE OrderIsComplete = 0 ORDER BY OrderTimestamp DESC";
 		} else {
 			query = "SELECT * FROM customer_order ORDER BY OrderTimestamp DESC";
 		}
@@ -381,12 +378,12 @@ public final class DBNinja {
 			String date = rs.getTimestamp("OrderTimestamp").toString();
 			double custPrice = rs.getDouble("OrderTotalPrice");
 			double busPrice = rs.getDouble("OrderTotalCost");
-			int isComplete = rs.getInt("isComplete");
+			int isComplete = rs.getInt("OrderIsComplete");
 
 			Order order;
 			switch (orderType) {
 				case dine_in:
-					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderOrderID = ?";
+					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderID = ?";
 					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
 					dineInStmt.setInt(1, orderID);
 					ResultSet dineInRs = dineInStmt.executeQuery();
@@ -395,7 +392,7 @@ public final class DBNinja {
 					order = new DineinOrder(orderID, custID, date, custPrice, busPrice, isComplete, tableNumber);
 					break;
 				case pickup:
-					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderOrderID = ?";
+					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderID = ?";
 					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
 					pickupStmt.setInt(1, orderID);
 					ResultSet pickupRs = pickupStmt.executeQuery();
@@ -404,7 +401,7 @@ public final class DBNinja {
 					order = new PickupOrder(orderID, custID, date, custPrice, busPrice, isPickedUp, isComplete);
 					break;
 				case delivery:
-					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderOrderID = ?";
+					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderID = ?";
 					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
 					deliveryStmt.setInt(1, orderID);
 					ResultSet deliveryRs = deliveryStmt.executeQuery();
@@ -563,7 +560,8 @@ public final class DBNinja {
 		*/
 
 		ArrayList<Discount> discounts = new ArrayList<>();
-		String query = "SELECT * FROM discount ORDER BY DiscountName";
+		// Grabbing the discounts and ordering them by ID since that is cleaner
+		String query = "SELECT * FROM discount ORDER BY DiscountID";
 
 		PreparedStatement pstmt = conn.prepareStatement(query);
 		ResultSet rs = pstmt.executeQuery();
@@ -571,16 +569,8 @@ public final class DBNinja {
 		while (rs.next()) {
 			int discountID = rs.getInt("DiscountID");
 			String discountName = rs.getString("DiscountName");
-			double amount;
-			boolean isPercent;
-
-			if (rs.getObject("PercentDiscount") != null) {
-				amount = rs.getDouble("PercentDiscount");
-				isPercent = true;
-			} else {
-				amount = rs.getDouble("DollarDiscount");
-				isPercent = false;
-			}
+			double amount = rs.getDouble("DiscountAmount");
+			boolean isPercent = rs.getBoolean("DiscountType");
 
 			Discount discount = new Discount(discountID, discountName, amount, isPercent);
 			discounts.add(discount);
@@ -696,7 +686,8 @@ public final class DBNinja {
 		 * 
 		 */
 		ArrayList<Topping> toppings = new ArrayList<>();
-		String query = "SELECT * FROM topping ORDER BY ToppingType";
+		// Decided to display the toppings by orderding them by OrderID like in the video example. (looks cleaner)
+		String query = "SELECT * FROM topping ORDER BY ToppingID";
 
 		PreparedStatement pstmt = conn.prepareStatement(query);
 		ResultSet rs = pstmt.executeQuery();
@@ -960,6 +951,7 @@ public final class DBNinja {
 		 * 
 		 * OF COURSE....this code would only work in your application if the table & field names match!
 		 *
+		 * Correct so I modified this helper function to make my table and fields
 		 */
 
 		 connect_to_db();
@@ -970,7 +962,7 @@ public final class DBNinja {
 		 * 
 		 */
 		String cname1 = "";
-		String query = "Select FName, LName From customer WHERE CustID=" + CustID + ";";
+		String query = "SELECT CustomerFirstName, CustomerLastName FROM customer WHERE CustomerID=" + CustID + ";";
 		Statement stmt = conn.createStatement();
 		ResultSet rset = stmt.executeQuery(query);
 		
@@ -987,13 +979,13 @@ public final class DBNinja {
 		PreparedStatement os;
 		ResultSet rset2;
 		String query2;
-		query2 = "Select FName, LName From customer WHERE CustID=?;";
+		query2 = "SELECT CustomerFirstName, CustomerLastName FROM customer WHERE CustomerID=?;";
 		os = conn.prepareStatement(query2);
 		os.setInt(1, CustID);
 		rset2 = os.executeQuery();
 		while(rset2.next())
 		{
-			cname2 = rset2.getString("FName") + " " + rset2.getString("LName"); // note the use of field names in the getSting methods
+			cname2 = rset2.getString("CustomerFirstName") + " " + rset2.getString("CustomerLastName"); // note the use of field names in the getSting methods
 		}
 
 		conn.close();
@@ -1058,6 +1050,53 @@ public final class DBNinja {
 
 		conn.close();
 		return customer;
+	}
+
+	public static Topping getToppingById(int toppingID) throws SQLException, IOException {
+		connect_to_db();
+		Topping topping = null;
+
+		String query = "SELECT * FROM topping WHERE ToppingID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setInt(1, toppingID);
+		ResultSet rs = pstmt.executeQuery();
+
+		if (rs.next()) {
+			String topName = rs.getString("ToppingType");
+			double perAMT = rs.getDouble("ToppingAmountSM");
+			double medAMT = rs.getDouble("ToppingAmountMD");
+			double lgAMT = rs.getDouble("ToppingAmountLG");
+			double xLAMT = rs.getDouble("ToppingAmountXL");
+			double custPrice = rs.getDouble("ToppingPrice");
+			double bustPrice = rs.getDouble("ToppingCost");
+			int MinINVT = rs.getInt("ToppingMinLvl");
+			int curINVT = rs.getInt("ToppingCurrLvl");
+			topping = new Topping(toppingID, topName, perAMT, medAMT, lgAMT,xLAMT, custPrice, bustPrice, MinINVT, curINVT);
+		}
+
+		conn.close();
+		return topping;
+	}
+
+	public static Discount getDiscountbyId(int discountID) throws SQLException, IOException {
+		connect_to_db();
+		Discount discount = null;
+
+		String query = "SELECT * FROM discount WHERE DiscountID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setInt(1, discountID);
+		ResultSet rs = pstmt.executeQuery();
+
+		if (rs.next()) {
+			String discountName = rs.getString("DiscountName");
+			double discountAmount = rs.getDouble("DiscountAmount");
+			boolean discountType = rs.getBoolean("DiscountType");
+
+			discount = new Discount(discountID, discountName, discountAmount, discountType);
+		}
+
+		conn.close();
+		return discount;
 	}
 
 

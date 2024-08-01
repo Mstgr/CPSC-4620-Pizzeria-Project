@@ -77,9 +77,8 @@ CREATE TABLE pizza_topping (
 CREATE TABLE discount (
     DiscountID INT AUTO_INCREMENT PRIMARY KEY,
     DiscountName VARCHAR(50) NOT NULL,
-    PercentDiscount DECIMAL(5, 2),
-    DollarDiscount DECIMAL(10, 2),
-    DiscountType VARCHAR(50) NOT NULL
+    DiscountAmount DECIMAL(5, 2),
+    DiscountType Boolean NOT NULL
 );
 
 -- Create pizza_discount table
@@ -123,6 +122,7 @@ CREATE TABLE pickup (
     PickupOrderID INT NOT NULL,
     PickupTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     PickupCustomerID INT NOT NULL,
+    isPickedUp INT NOT NULL,
     PRIMARY KEY (PickupOrderID),
     FOREIGN KEY (PickupOrderID) REFERENCES customer_order(OrderID),
     FOREIGN KEY (PickupCustomerID) REFERENCES customer(CustomerID)

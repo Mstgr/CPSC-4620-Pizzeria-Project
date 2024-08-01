@@ -20,14 +20,14 @@ INSERT INTO topping (ToppingType, ToppingPrice, ToppingCost, ToppingAmountSM, To
 ('Goat Cheese', 1.5, 0.2, 1.6, 2.75, 4, 5.5, 0, 54),
 ('Bacon', 1.5, 0.25, 1, 1.5, 2, 3, 0, 89);
 
--- Populate the discount table
-INSERT INTO discount (DiscountName, PercentDiscount, DollarDiscount, DiscountType) VALUES
-('Employee', 15, NULL, 'Percent'),
-('Lunch Special Medium', NULL, 1.00, 'Dollar'),
-('Lunch Special Large', NULL, 2.00, 'Dollar'),
-('Specialty Pizza', NULL, 1.50, 'Dollar'),
-('Happy Hour', 10, NULL, 'Percent'),
-('Gameday Special', 20, NULL, 'Percent');
+-- Populate the discount table (DiscountType is more like: is it a percentage?)
+INSERT INTO discount (DiscountName, DiscountAmount, DiscountType) VALUES
+('Employee', 15, true),
+('Lunch Special Medium', 1.00, false),
+('Lunch Special Large', 2.00, false),
+('Specialty Pizza', 1.50, false),
+('Happy Hour', 10, true),
+('Gameday Special', 20, true);
 
 -- Populate the base_price_cost table
 INSERT INTO base_price_cost (SizeType, CrustType, BasePrice, BaseCost) VALUES
@@ -59,7 +59,7 @@ INSERT INTO customer (CustomerFirstName, CustomerLastName, CustomerPhone) VALUES
 
 -- Order 1
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(1, 1, '2024-03-05 12:03:00', 'DineIn', 19.75, 3.68, 'DineIn');
+(1, 1, '2024-03-05 12:03:00', 'dinein', 19.75, 3.68, 'dinein');
 INSERT INTO dine_in (DineInOrderID, TableNumber) VALUES (1, 21);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (1, 'Thin', 'Large', 19.75, 3.68, 1);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (1, 13), (1, 1), (1, 2);
@@ -67,7 +67,7 @@ INSERT INTO pizza_discount (PizzaDiscountID, PizzaDiscountPizzaID, PizzaDiscount
 
 -- Order 2
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(2, 1, '2024-04-03 12:05:00', 'DineIn', 19.78, 4.63, 'DineIn');
+(2, 1, '2024-04-03 12:05:00', 'dinein', 19.78, 4.63, 'dinein');
 INSERT INTO dine_in (DineInOrderID, TableNumber) VALUES (2, 4);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (2, 'Pan', 'Medium', 12.85, 3.23, 2);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (2, 15), (2, 9), (2, 7), (2, 8), (2, 12);
@@ -77,14 +77,14 @@ INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (3
 
 -- Order 3
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(3, 1, '2024-03-03 21:30:00', 'Pickup', 89.28, 19.80, 'Pickup');
+(3, 1, '2024-03-03 21:30:00', 'pickup', 89.28, 19.80, 'pickup');
 INSERT INTO pickup (PickupOrderID, PickupTimestamp, PickupCustomerID) VALUES (3, '2023-03-03 21:30:00', 1);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (4, 'Original', 'Large', 14.88, 3.30, 3);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (4, 13), (4, 1);
 
 -- Order 4
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(4, 1, '2024-04-20 19:11:00', 'Delivery', 86.19, 23.62, 'Delivery');
+(4, 1, '2024-04-20 19:11:00', 'delivery', 86.19, 23.62, 'delivery');
 INSERT INTO delivery (DeliveryOrderID, DeliveryAddress, DeliveryCustomerID) VALUES (4, '115 Party Blvd, Anderson SC 29621', 1);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (5, 'Original', 'XLarge', 27.94, 9.19, 4);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (5, 1), (5, 2), (5, 14);
@@ -97,7 +97,7 @@ INSERT INTO order_discount (OrderDiscountID, OrderDiscountOrderID, OrderDiscount
 
 -- Order 5
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(5, 2, '2024-03-02 17:30:00', 'Pickup', 27.45, 7.88, 'Pickup');
+(5, 2, '2024-03-02 17:30:00', 'pickup', 27.45, 7.88, 'pickup');
 INSERT INTO pickup (PickupOrderID, PickupTimestamp, PickupCustomerID) VALUES (5, '2023-03-02 17:30:00', 2);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (8, 'Gluten-Free', 'XLarge', 27.45, 7.88, 5);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 16);
@@ -105,14 +105,14 @@ INSERT INTO pizza_discount (PizzaDiscountID, PizzaDiscountPizzaID, PizzaDiscount
 
 -- Order 6
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(6, 3, '2024-03-02 18:17:00', 'Delivery', 25.81, 4.24, 'Delivery');
+(6, 3, '2024-03-02 18:17:00', 'delivery', 25.81, 4.24, 'delivery');
 INSERT INTO delivery (DeliveryOrderID, DeliveryAddress, DeliveryCustomerID) VALUES (6, '6745 Wessex St Anderson SC 29621', 3);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (9, 'Thin', 'Large', 25.81, 4.24, 6);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (9, 4), (9, 5), (9, 6), (9, 8), (9, 14);
 
 -- Order 7
 INSERT INTO customer_order (OrderID, OrderCustomerID, OrderTimestamp, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES
-(7, 4, '2024-04-13 20:32:00', 'Delivery', 37.25, 6.00, 'Delivery');
+(7, 4, '2024-04-13 20:32:00', 'delivery', 37.25, 6.00, 'delivery');
 INSERT INTO delivery (DeliveryOrderID, DeliveryAddress, DeliveryCustomerID) VALUES (7, '8879 Suburban Home, Anderson, SC 29621', 4);
 INSERT INTO pizza (PizzaID, PizzaCrustType, PizzaSizeType, PizzaTotalPrice, PizzaTotalCost, OrderID) VALUES (10, 'Thin', 'Large', 18.00, 2.75, 7);
 INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (10, 14);

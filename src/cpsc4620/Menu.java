@@ -202,8 +202,8 @@ public class Menu {
 		buildPizza(order.getOrderID());
 
 		System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
-		String stopInput = reader.readLine();;
-		int stopPizzaInput = Integer.parseInt(stopInput);;
+		String stopInput = reader.readLine();
+		int stopPizzaInput = Integer.parseInt(stopInput);
 		while (stopPizzaInput != -1) {
 			System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
 			buildPizza(order.getOrderID());
@@ -212,13 +212,31 @@ public class Menu {
 		}
 
 		System.out.println("Do you want to add discounts to this order? Enter y/n?");
-		System.out.println("Which Order Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
-
-
-
+		String addDiscounts = reader.readLine().toUpperCase();
+		// Error checking user for existing customer options
+		while (!addDiscounts.equals("Y") && !addDiscounts.equals("N")){
+			System.out.println("Invalid Choice. Please enter a valid choice below: ");
+			System.out.println("Do you want to add discounts to this order? Enter y/n?");
+			addDiscounts = reader.readLine().toUpperCase();
+		}
+		if (addDiscounts.equals("Y")) {
+			Discount discount;
+			int discountChoice;
+			while (true) {
+				// Print the discounts for the user (not making a helper function for this)
+				ArrayList<Discount> discounts = DBNinja.getDiscountList();
+				for (Discount d : discounts) {
+					System.out.println(d);
+				}
+				System.out.println("Which Order Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
+				discountChoice = Integer.parseInt(reader.readLine());
+				if (discountChoice == -1) { break; }
+				discount = DBNinja.getDiscountbyId(discountChoice);
+				order.addDiscount(discount);
+			}
+		}
 
 		System.out.println("Finished adding order...Returning to menu...");
-
 	}
 	
 	
@@ -313,7 +331,9 @@ public class Menu {
 		System.out.println("Which order would you like to see in detail? Enter the number (-1 to exit): ");
 		int orderID = Integer.parseInt(reader.readLine());
 		if (orderID == -1) return;
+
 		Order order = orders.stream().filter(o -> o.getOrderID() == orderID).findFirst().orElse(null);
+
 		if (order == null) {
 			System.out.println("Incorrect entry, returning to menu.");
 			return;
@@ -366,10 +386,15 @@ public class Menu {
 		 * Print the inventory. Display the topping ID, name, and current inventory
 		*/
 
-
 		ArrayList<Topping> toppings = DBNinja.getToppingList();
+
+		// Print header
+		System.out.println(String.format("%-5s | %-20s | %-15s |", "ID", "Topping", "Curr. Inv. Lvl."));
+		System.out.println("------------------------------------------------");
+
+		// Print toppings
 		for (Topping t : toppings) {
-			System.out.println(t);
+			System.out.println(String.format("%-5d | %-20s | %-15d |", t.getTopID(), t.getTopName(), t.getCurINVT()));
 		}
 	}
 
@@ -477,30 +502,43 @@ public class Menu {
 		DBNinja.addPizza(pizza);
 
 		while (true) {
+			ViewInventoryLevels();
 			System.out.println("Which topping do you want to add? Enter the TopID. Enter -1 to stop adding toppings: ");
 			int toppingID = Integer.parseInt(reader.readLine());
 			if (toppingID == -1) break;
 
-			Topping topping = DBNinja.findToppingByName(String.valueOf(toppingID));
+			Topping topping = DBNinja.getToppingById(toppingID);
+			System.out.println("TEST OUTPUT: TOPPING NAME: " + topping.getTopName());
+
 			if (topping == null) {
 				System.out.println("Incorrect entry, not an option");
 				continue;
 			}
-
+			// Add Error Checking Later
 			System.out.println("Do you want to add extra topping? Enter y/n");
 			boolean isDoubled = reader.readLine().equalsIgnoreCase("y");
 
 			DBNinja.useTopping(pizza, topping, isDoubled);
 		}
 
+		// Need to add error checking here
 		System.out.println("Do you want to add discounts to this Pizza? Enter y/n?");
 		if (reader.readLine().equalsIgnoreCase("y")) {
 			while (true) {
+				// Print the discounts for the user (not making a helper function for this)
+				ArrayList<Discount> discounts = DBNinja.getDiscountList();
+				for (Discount d : discounts){
+					System.out.println(d);
+				}
+
 				System.out.println("Which Pizza Discount do you want to add? Enter the DiscountID. Enter -1 to stop adding Discounts: ");
 				int discountID = Integer.parseInt(reader.readLine());
 				if (discountID == -1) break;
 
-				Discount discount = DBNinja.findDiscountByName(String.valueOf(discountID));
+
+				Discount discount = DBNinja.getDiscountbyId(discountID);
+				// Test Output
+				System.out.println("TEST OUTPUT DISCOUNT: " +  discount.getDiscountName() + " DiscountID: " + discount.getDiscountID());
 				if (discount == null) {
 					System.out.println("Incorrect entry, not an option");
 					continue;
