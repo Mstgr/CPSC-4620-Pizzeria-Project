@@ -42,13 +42,15 @@ public final class DBNinja {
 	public final static String crust_pan = "Pan";
 	public final static String crust_gf = "Gluten-Free";
 
+	public final static int PARAM_INDEX_ONE = 1;
+	public final static int PARAM_INDEX_TWO = 2;
+	public final static int PARAM_INDEX_THREE = 3;
+	public final static int PARAM_INDEX_FOUR = 4;
+	public final static int PARAM_INDEX_FIVE = 5;
+	public final static int PRAM_INDEX_SIX = 6;
 
 
-	// I think all the methods in DBNinja could technically work but,
-	// this is a warning that they have not been testing nearly enough
-	// as they should so please do not have high expectations
-	// Life happened this past weekend and this is just the best I
-	// could throw together during this time.
+	
 	private static boolean connect_to_db() throws SQLException, IOException {
 
 		try {
@@ -79,26 +81,26 @@ public final class DBNinja {
 
 		String query = "INSERT INTO customer_order (OrderCustomerID, OrderType, OrderTotalPrice, OrderTotalCost, OrderSubType) VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-		pstmt.setInt(1, o.getCustID());
-		pstmt.setString(2, o.getOrderType());
-		pstmt.setDouble(3, o.getCustPrice());
-		pstmt.setDouble(4, o.getBusPrice());
-		pstmt.setString(5, o.getOrderType());
+		pstmt.setInt(PARAM_INDEX_ONE, o.getCustID());
+		pstmt.setString(PARAM_INDEX_TWO, o.getOrderType());
+		pstmt.setDouble(PARAM_INDEX_THREE, o.getCustPrice());
+		pstmt.setDouble(PARAM_INDEX_FOUR, o.getBusPrice());
+		pstmt.setString(PARAM_INDEX_FIVE, o.getOrderType());
 		pstmt.executeUpdate();
 
 		// Let the database handle giving the Order an ID
 		ResultSet keys = pstmt.getGeneratedKeys();
 		if (keys.next()) {
-			o.setOrderID(keys.getInt(1));
+			o.setOrderID(keys.getInt(PARAM_INDEX_ONE));
 		}
 
 		// Let the database handle giving the Order a timestamp
 		String timestampQuery = "SELECT OrderTimestamp FROM customer_order WHERE OrderID = ?";
 		PreparedStatement tsPstmt = conn.prepareStatement(timestampQuery);
-		tsPstmt.setInt(1, o.getOrderID());
+		tsPstmt.setInt(PARAM_INDEX_ONE, o.getOrderID());
 		ResultSet tsRs = tsPstmt.executeQuery();
 		if (tsRs.next()) {
-			o.setDate(tsRs.getString(1));
+			o.setDate(tsRs.getString(PARAM_INDEX_ONE));
 		}
 
 		// Add to the corresponding subtype table
@@ -106,24 +108,24 @@ public final class DBNinja {
 			case dine_in:
 				String dineInQuery = "INSERT INTO dine_in (DineInOrderID, TableNumber) VALUES (?, ?)";
 				PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
-				dineInStmt.setInt(1, o.getOrderID());
-				dineInStmt.setInt(2, ((DineinOrder) o).getTableNum());
+				dineInStmt.setInt(PARAM_INDEX_ONE, o.getOrderID());
+				dineInStmt.setInt(PARAM_INDEX_TWO, ((DineinOrder) o).getTableNum());
 				dineInStmt.executeUpdate();
 				break;
 			case pickup:
 				String pickupQuery = "INSERT INTO pickup (PickupOrderID, PickupTimestamp, PickupCustomerID) VALUES (?, ?, ?)";
 				PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
-				pickupStmt.setInt(1, o.getOrderID());
-				pickupStmt.setTimestamp(2, Timestamp.valueOf(o.getDate()));
-				pickupStmt.setInt(3, o.getCustID());
+				pickupStmt.setInt(PARAM_INDEX_ONE, o.getOrderID());
+				pickupStmt.setTimestamp(PARAM_INDEX_TWO, Timestamp.valueOf(o.getDate()));
+				pickupStmt.setInt(PARAM_INDEX_THREE, o.getCustID());
 				pickupStmt.executeUpdate();
 				break;
 			case delivery:
 				String deliveryQuery = "INSERT INTO delivery (DeliveryOrderID, DeliveryAddress, DeliveryCustomerID) VALUES (?, ?, ?)";
 				PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
-				deliveryStmt.setInt(1, o.getOrderID());
-				deliveryStmt.setString(2, ((DeliveryOrder) o).getAddress());
-				deliveryStmt.setInt(3, o.getCustID());
+				deliveryStmt.setInt(PARAM_INDEX_ONE, o.getOrderID());
+				deliveryStmt.setString(PARAM_INDEX_TWO, ((DeliveryOrder) o).getAddress());
+				deliveryStmt.setInt(PARAM_INDEX_THREE, o.getCustID());
 				deliveryStmt.executeUpdate();
 				break;
 		}
@@ -155,29 +157,27 @@ public final class DBNinja {
 
 		String pizzaQuery = "INSERT INTO pizza (PizzaSizeType, PizzaCrustType, PizzaState, OrderID, PizzaTotalPrice, PizzaTotalCost) VALUES (?, ?, ?, ?, ?, ?)";
 		PreparedStatement pizzaStmt = conn.prepareStatement(pizzaQuery, Statement.RETURN_GENERATED_KEYS);
-		pizzaStmt.setString(1, p.getSize());
-		pizzaStmt.setString(2, p.getCrustType());
-		pizzaStmt.setString(3, p.getPizzaState());
-		pizzaStmt.setInt(4, p.getOrderID());
-		pizzaStmt.setDouble(5, p.getCustPrice());
-		pizzaStmt.setDouble(6, p.getBusPrice());
+		pizzaStmt.setString(PARAM_INDEX_ONE, p.getSize());
+		pizzaStmt.setString(PARAM_INDEX_TWO, p.getCrustType());
+		pizzaStmt.setString(PARAM_INDEX_THREE, p.getPizzaState());
+		pizzaStmt.setInt(PARAM_INDEX_FOUR, p.getOrderID());
+		pizzaStmt.setDouble(PARAM_INDEX_FIVE, p.getCustPrice());
+		pizzaStmt.setDouble(PRAM_INDEX_SIX, p.getBusPrice());
 
-		// Test Output
-		System.out.println("Pizza SQL QUERY: " + pizzaStmt);
 		// Let the database handle giving the Pizza an ID
 		pizzaStmt.executeUpdate();
 		ResultSet keys = pizzaStmt.getGeneratedKeys();
 		if (keys.next()) {
-			p.setPizzaID(keys.getInt(1));
+			p.setPizzaID(keys.getInt(PARAM_INDEX_ONE));
 		}
 
 		// Let the database handle giving the Pizza a date (timestamp)
 		String timestampQuery = "SELECT PizzaTimestamp FROM pizza WHERE PizzaID = ?";
 		PreparedStatement tsPstmt = conn.prepareStatement(timestampQuery);
-		tsPstmt.setInt(1, p.getPizzaID());
+		tsPstmt.setInt(PARAM_INDEX_ONE, p.getPizzaID());
 		ResultSet tsRs = tsPstmt.executeQuery();
 		if (tsRs.next()) {
-			p.setPizzaDate(tsRs.getString(1));
+			p.setPizzaDate(tsRs.getString(PARAM_INDEX_ONE));
 		}
 
 		// Add toppings to the pizza
@@ -230,21 +230,21 @@ public final class DBNinja {
 		}
 
 		if (isDoubled) {
-			quantityUsed *= 2;
+			quantityUsed *= PARAM_INDEX_TWO;
 		}
 
 		// Update topping inventory
 		String updateToppingQuery = "UPDATE topping SET ToppingCurrLvl = ToppingCurrLvl - ? WHERE ToppingID = ?";
 		PreparedStatement updateToppingStmt = conn.prepareStatement(updateToppingQuery);
-		updateToppingStmt.setDouble(1, quantityUsed);
-		updateToppingStmt.setInt(2, t.getTopID());
+		updateToppingStmt.setDouble(PARAM_INDEX_ONE, quantityUsed);
+		updateToppingStmt.setInt(PARAM_INDEX_TWO, t.getTopID());
 		updateToppingStmt.executeUpdate();
 
 		// Connect the topping to the pizza
 		String pizzaToppingQuery = "INSERT INTO pizza_topping (PizzaToppingPizzaID, PizzaToppingToppingID) VALUES (?, ?)";
 		PreparedStatement pizzaToppingStmt = conn.prepareStatement(pizzaToppingQuery);
-		pizzaToppingStmt.setInt(1, p.getPizzaID());
-		pizzaToppingStmt.setInt(2, t.getTopID());
+		pizzaToppingStmt.setInt(PARAM_INDEX_ONE, p.getPizzaID());
+		pizzaToppingStmt.setInt(PARAM_INDEX_TWO, t.getTopID());
 		pizzaToppingStmt.executeUpdate();
 
 		conn.close();
@@ -268,8 +268,8 @@ public final class DBNinja {
 
 		String query = "INSERT INTO pizza_discount (PizzaDiscountPizzaID, PizzaDiscountDiscountID) VALUES (?, ?)";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setInt(1, p.getPizzaID());
-		pstmt.setInt(2, d.getDiscountID());
+		pstmt.setInt(PARAM_INDEX_ONE, p.getPizzaID());
+		pstmt.setInt(PARAM_INDEX_TWO, d.getDiscountID());
 		pstmt.executeUpdate();
 
 		conn.close();
@@ -292,8 +292,8 @@ public final class DBNinja {
 
 		String query = "INSERT INTO order_discount (OrderDiscountOrderID, OrderDiscountDiscountID) VALUES (?, ?)";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setInt(1, o.getOrderID());
-		pstmt.setInt(2, d.getDiscountID());
+		pstmt.setInt(PARAM_INDEX_ONE, o.getOrderID());
+		pstmt.setInt(PARAM_INDEX_TWO, d.getDiscountID());
 		pstmt.executeUpdate();
 
 		conn.close();
@@ -311,15 +311,15 @@ public final class DBNinja {
 
 		String query = "INSERT INTO customer (CustomerFirstName, CustomerLastName, CustomerPhone) VALUES (?, ?, ?)";
 		PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-		pstmt.setString(1, c.getFName());
-		pstmt.setString(2, c.getLName());
-		pstmt.setString(3, c.getPhone());
+		pstmt.setString(PARAM_INDEX_ONE, c.getFName());
+		pstmt.setString(PARAM_INDEX_TWO, c.getLName());
+		pstmt.setString(PARAM_INDEX_THREE, c.getPhone());
 		pstmt.executeUpdate();
 
 		ResultSet keys = pstmt.getGeneratedKeys();
 
 		if (keys.next()) {
-			c.setCustID(keys.getInt(1));
+			c.setCustID(keys.getInt(PARAM_INDEX_ONE));
 		}
 
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
@@ -335,11 +335,11 @@ public final class DBNinja {
 
 		String query = "UPDATE customer_order SET OrderIsComplete = 1 WHERE OrderID = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setInt(1, o.getOrderID());
+		pstmt.setInt(PARAM_INDEX_ONE, o.getOrderID());
 		pstmt.executeUpdate();
 
 		// Mark the order as complete in the Order object
-		o.setIsComplete(1);
+		o.setIsComplete(PARAM_INDEX_ONE);
 		conn.close();
 		//DO NOT FORGET TO CLOSE YOUR CONNECTION
 	}
@@ -363,9 +363,10 @@ public final class DBNinja {
 		String query;
 
 		if (openOnly) {
-			query = "SELECT * FROM customer_order WHERE OrderIsComplete = 0 ORDER BY OrderTimestamp DESC";
+			// Sorted by orderID just like in the video
+			query = "SELECT * FROM customer_order WHERE OrderIsComplete = 0 ORDER BY OrderID";
 		} else {
-			query = "SELECT * FROM customer_order ORDER BY OrderTimestamp DESC";
+			query = "SELECT * FROM customer_order ORDER BY OrderID";
 		}
 
 		PreparedStatement pstmt = conn.prepareStatement(query);
@@ -385,7 +386,7 @@ public final class DBNinja {
 				case dine_in:
 					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderID = ?";
 					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
-					dineInStmt.setInt(1, orderID);
+					dineInStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet dineInRs = dineInStmt.executeQuery();
 					dineInRs.next();
 					int tableNumber = dineInRs.getInt("TableNumber");
@@ -394,7 +395,7 @@ public final class DBNinja {
 				case pickup:
 					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderID = ?";
 					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
-					pickupStmt.setInt(1, orderID);
+					pickupStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet pickupRs = pickupStmt.executeQuery();
 					pickupRs.next();
 					int isPickedUp = pickupRs.getInt("isPickedUp");
@@ -403,7 +404,7 @@ public final class DBNinja {
 				case delivery:
 					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderID = ?";
 					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
-					deliveryStmt.setInt(1, orderID);
+					deliveryStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet deliveryRs = deliveryStmt.executeQuery();
 					deliveryRs.next();
 					String address = deliveryRs.getString("DeliveryAddress");
@@ -453,7 +454,7 @@ public final class DBNinja {
 				case dine_in:
 					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderOrderID = ?";
 					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
-					dineInStmt.setInt(1, orderID);
+					dineInStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet dineInRs = dineInStmt.executeQuery();
 					dineInRs.next();
 					int tableNumber = dineInRs.getInt("TableNumber");
@@ -462,7 +463,7 @@ public final class DBNinja {
 				case pickup:
 					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderOrderID = ?";
 					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
-					pickupStmt.setInt(1, orderID);
+					pickupStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet pickupRs = pickupStmt.executeQuery();
 					pickupRs.next();
 					int isPickedUp = pickupRs.getInt("isPickedUp");
@@ -471,7 +472,7 @@ public final class DBNinja {
 				case delivery:
 					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderOrderID = ?";
 					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
-					deliveryStmt.setInt(1, orderID);
+					deliveryStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet deliveryRs = deliveryStmt.executeQuery();
 					deliveryRs.next();
 					String address = deliveryRs.getString("DeliveryAddress");
@@ -493,13 +494,18 @@ public final class DBNinja {
 		 * and return a list of those orders.
 		 *  
 		 */
+
+		// Above it says to query the database for all order placed ON a specific date
+		// The prompt however says display order SINCE a specific date & the video on canvas does as well
+		// So because the odds that you get results are higher when you filter for SINCE a specific date
+		// I will go with that.
 		connect_to_db();
 
 		ArrayList<Order> orders = new ArrayList<>();
-		String query = "SELECT * FROM customer_order WHERE DATE(OrderTimestamp) = ? ORDER BY OrderTimestamp";
+		String query = "SELECT * FROM customer_order WHERE DATE(OrderTimestamp) >= ? ORDER BY OrderTimestamp";
 
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setString(1, date);
+		pstmt.setString(PARAM_INDEX_ONE, date);
 		ResultSet rs = pstmt.executeQuery();
 
 		while (rs.next()) {
@@ -509,32 +515,32 @@ public final class DBNinja {
 			String dateTime = rs.getTimestamp("OrderTimestamp").toString();
 			double custPrice = rs.getDouble("OrderTotalPrice");
 			double busPrice = rs.getDouble("OrderTotalCost");
-			int isComplete = rs.getInt("isComplete");
+			int isComplete = rs.getInt("OrderIsComplete");
 
 			Order order;
 			switch (orderType) {
 				case dine_in:
-					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderOrderID = ?";
+					String dineInQuery = "SELECT * FROM dine_in WHERE DineInOrderID = ?";
 					PreparedStatement dineInStmt = conn.prepareStatement(dineInQuery);
-					dineInStmt.setInt(1, orderID);
+					dineInStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet dineInRs = dineInStmt.executeQuery();
 					dineInRs.next();
 					int tableNumber = dineInRs.getInt("TableNumber");
 					order = new DineinOrder(orderID, custID, dateTime, custPrice, busPrice, isComplete, tableNumber);
 					break;
 				case pickup:
-					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderOrderID = ?";
+					String pickupQuery = "SELECT * FROM pickup WHERE PickupOrderID = ?";
 					PreparedStatement pickupStmt = conn.prepareStatement(pickupQuery);
-					pickupStmt.setInt(1, orderID);
+					pickupStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet pickupRs = pickupStmt.executeQuery();
 					pickupRs.next();
 					int isPickedUp = pickupRs.getInt("isPickedUp");
 					order = new PickupOrder(orderID, custID, dateTime, custPrice, busPrice, isPickedUp, isComplete);
 					break;
 				case delivery:
-					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderOrderID = ?";
+					String deliveryQuery = "SELECT * FROM delivery WHERE DeliveryOrderID = ?";
 					PreparedStatement deliveryStmt = conn.prepareStatement(deliveryQuery);
-					deliveryStmt.setInt(1, orderID);
+					deliveryStmt.setInt(PARAM_INDEX_ONE, orderID);
 					ResultSet deliveryRs = deliveryStmt.executeQuery();
 					deliveryRs.next();
 					String address = deliveryRs.getString("DeliveryAddress");
@@ -591,7 +597,7 @@ public final class DBNinja {
 
 		String query = "SELECT * FROM discount WHERE DiscountName = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setString(1, name);
+		pstmt.setString(PARAM_INDEX_ONE, name);
 		ResultSet rs = pstmt.executeQuery();
 
 		Discount discount = null;
@@ -658,7 +664,7 @@ public final class DBNinja {
 
 		String query = "SELECT * FROM customer WHERE CustomerPhone = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setString(1, phoneNumber);
+		pstmt.setString(PARAM_INDEX_ONE, phoneNumber);
 		ResultSet rs = pstmt.executeQuery();
 
 		Customer customer = null;
@@ -722,7 +728,7 @@ public final class DBNinja {
 		 */
 		String query = "SELECT * FROM topping WHERE ToppingType = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setString(1, name);
+		pstmt.setString(PARAM_INDEX_ONE, name);
 		ResultSet rs = pstmt.executeQuery();
 
 		Topping topping = null;
@@ -756,8 +762,8 @@ public final class DBNinja {
 		 * */
 		String query = "UPDATE topping SET ToppingCurrLvl = ToppingCurrLvl + ? WHERE ToppingID = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setDouble(1, quantity);
-		pstmt.setInt(2, t.getTopID());
+		pstmt.setDouble(PARAM_INDEX_ONE, quantity);
+		pstmt.setInt(PARAM_INDEX_TWO, t.getTopID());
 		pstmt.executeUpdate();
 
 		conn.close();
@@ -773,8 +779,8 @@ public final class DBNinja {
 		*/
 		String query = "SELECT BasePrice FROM base_price_cost WHERE SizeType = ? AND CrustType = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setString(1, size);
-		pstmt.setString(2, crust);
+		pstmt.setString(PARAM_INDEX_ONE, size);
+		pstmt.setString(PARAM_INDEX_TWO, crust);
 		ResultSet rs = pstmt.executeQuery();
 
 		double basePrice = 0.0;
@@ -798,8 +804,8 @@ public final class DBNinja {
 
 		String query = "SELECT BaseCost FROM base_price_cost WHERE SizeType = ? AND CrustType = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setString(1, size);
-		pstmt.setString(2, crust);
+		pstmt.setString(PARAM_INDEX_ONE, size);
+		pstmt.setString(PARAM_INDEX_TWO, crust);
 		ResultSet rs = pstmt.executeQuery();
 
 		double baseCost = 0.0;
@@ -968,7 +974,7 @@ public final class DBNinja {
 		
 		while(rset.next())
 		{
-			cname1 = rset.getString(1) + " " + rset.getString(2); 
+			cname1 = rset.getString(PARAM_INDEX_ONE) + " " + rset.getString(PARAM_INDEX_TWO);
 		}
 
 		/* 
@@ -1038,7 +1044,7 @@ public final class DBNinja {
 
 		String query = "SELECT * FROM customer WHERE CustomerID = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setInt(1, customerID);
+		pstmt.setInt(PARAM_INDEX_ONE, customerID);
 		ResultSet rs = pstmt.executeQuery();
 
 		if (rs.next()) {
@@ -1052,13 +1058,14 @@ public final class DBNinja {
 		return customer;
 	}
 
+	// Helper function to simply get topping by ID
 	public static Topping getToppingById(int toppingID) throws SQLException, IOException {
 		connect_to_db();
 		Topping topping = null;
 
 		String query = "SELECT * FROM topping WHERE ToppingID = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setInt(1, toppingID);
+		pstmt.setInt(PARAM_INDEX_ONE, toppingID);
 		ResultSet rs = pstmt.executeQuery();
 
 		if (rs.next()) {
@@ -1078,13 +1085,14 @@ public final class DBNinja {
 		return topping;
 	}
 
+	// Helper function to simply get the discount by ID
 	public static Discount getDiscountbyId(int discountID) throws SQLException, IOException {
 		connect_to_db();
 		Discount discount = null;
 
 		String query = "SELECT * FROM discount WHERE DiscountID = ?";
 		PreparedStatement pstmt = conn.prepareStatement(query);
-		pstmt.setInt(1, discountID);
+		pstmt.setInt(PARAM_INDEX_ONE, discountID);
 		ResultSet rs = pstmt.executeQuery();
 
 		if (rs.next()) {
@@ -1099,5 +1107,113 @@ public final class DBNinja {
 		return discount;
 	}
 
+	// This helper function is used to get the details about an order
+	// However it is funky sometimes and for some order is can return
+	// something but for others "connection closed" and wasn't sure how to fix that
+	// so I at least wrapped it in a try catch
+	public static Order getOrderById(int orderID) throws SQLException, IOException {
+		connect_to_db();
 
+		Order order = null;
+		Pizza pizza = null;
+
+		try {
+			String query = "SELECT * FROM customer_order WHERE OrderID = ?";
+			PreparedStatement pstmt = conn.prepareStatement(query);
+			pstmt.setInt(PARAM_INDEX_ONE, orderID);
+			ResultSet rs = pstmt.executeQuery();
+
+			if (rs.next()) {
+				int custID = rs.getInt("OrderCustomerID");
+				String orderType = rs.getString("OrderType");
+				String date = rs.getString("OrderTimestamp");
+				double custPrice = rs.getDouble("OrderTotalPrice");
+				double busPrice = rs.getDouble("OrderTotalCost");
+				int isComplete = rs.getInt("OrderIsComplete");
+
+				order = new Order(orderID, custID, orderType, date, custPrice, busPrice, isComplete);
+			}
+			rs.close();
+			pstmt.close();
+
+			if (order != null) {
+				String query2 = "SELECT * FROM pizza WHERE OrderID = ?";
+				PreparedStatement pstmt2 = conn.prepareStatement(query2);
+				pstmt2.setInt(PARAM_INDEX_ONE, orderID);
+				ResultSet rs2 = pstmt2.executeQuery();
+
+				ArrayList<Pizza> pizzas = new ArrayList<>();
+
+				while (rs2.next()) {
+					int pizzaID = rs2.getInt("PizzaID");
+					String size = rs2.getString("PizzaSizeType");
+					String crustType = rs2.getString("PizzaCrustType");
+					String pizzaState = rs2.getString("PizzaState");
+					String pizzaDate = rs2.getString("PizzaTimestamp");
+					double pizzaCustPrice = rs2.getDouble("PizzaTotalPrice");
+					double pizzaBusPrice = rs2.getDouble("PizzaTotalCost");
+
+					pizza = new Pizza(pizzaID, size, crustType, orderID, pizzaState, pizzaDate, pizzaCustPrice, pizzaBusPrice);
+					pizzas.add(pizza);
+					order.addPizza(pizza);
+				}
+				rs2.close();
+				pstmt2.close();
+
+				String pizzaDiscountQuery = "SELECT * FROM pizza_discount WHERE PizzaDiscountPizzaID = ?";
+				PreparedStatement pstmt3 = conn.prepareStatement(pizzaDiscountQuery);
+				for (Pizza p : pizzas) {
+					pstmt3.setInt(PARAM_INDEX_ONE, p.getPizzaID());
+					ResultSet rs3 = pstmt3.executeQuery();
+
+					while (rs3.next()) {
+						int pizzaDiscountDiscountID = rs3.getInt("PizzaDiscountDiscountID");
+						Discount discount = getDiscountbyId(pizzaDiscountDiscountID);
+						p.addDiscounts(discount);
+					}
+					rs3.close();
+				}
+				pstmt3.close();
+
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Error occurred while retrieving order: " + e.getMessage());
+		} finally {
+			if (conn != null) {
+				conn.close();
+			}
+		}
+		return order;
+	}
+
+	// Helper function to update the Order pricing after pizza/discount has been added
+	public static void updateOrder(int orderID, double updatedPrice, double updatedCost) throws SQLException, IOException {
+		connect_to_db();
+
+		String query = "UPDATE customer_order SET OrderTotalPrice = ?, OrderTotalCost = ? WHERE OrderID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setDouble(PARAM_INDEX_ONE, updatedPrice);
+		pstmt.setDouble(PARAM_INDEX_TWO, updatedCost);
+		pstmt.setInt(PARAM_INDEX_THREE, orderID);
+
+		pstmt.executeUpdate();
+
+		conn.close();
+	}
+
+	// Helper function to update the pizza pricing after topping/discount has been added
+	public static void updatePizza(int pizzaID, double updatedPrice, double updatedCost) throws SQLException, IOException {
+		connect_to_db();
+
+		String query = "UPDATE pizza SET PizzaTotalPrice = ?, PizzaTotalCost = ? WHERE PizzaID = ?";
+		PreparedStatement pstmt = conn.prepareStatement(query);
+		pstmt.setDouble(PARAM_INDEX_ONE, updatedPrice);
+		pstmt.setDouble(PARAM_INDEX_TWO, updatedCost);
+		pstmt.setInt(PARAM_INDEX_THREE, pizzaID);
+
+		pstmt.executeUpdate();
+
+		conn.close();
+	}
 }

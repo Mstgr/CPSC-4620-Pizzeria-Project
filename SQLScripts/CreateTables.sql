@@ -42,12 +42,14 @@ CREATE TABLE pizza (
     PizzaSizeType VARCHAR(50) NOT NULL,
     PizzaCrustType VARCHAR(50) NOT NULL,
     OrderID INT NOT NULL,
-    PizzaState VARCHAR(50),
-    PizzaTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, -- Called Pizza Date in the Pizza Class
-    PizzaTotalPrice DECIMAL(10, 2),
-    PizzaTotalCost DECIMAL(10, 2),
-    FOREIGN KEY (PizzaCrustType, PizzaSizeType) REFERENCES base_price_cost(CrustType, SizeType),
-    FOREIGN KEY (OrderID) REFERENCES customer_order(OrderID)
+    PizzaState VARCHAR(50) DEFAULT "in progress",
+    PizzaTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    PizzaTotalPrice DECIMAL(10 , 2 ),
+    PizzaTotalCost DECIMAL(10 , 2 ),
+    FOREIGN KEY (PizzaCrustType , PizzaSizeType)
+        REFERENCES base_price_cost (CrustType , SizeType),
+    FOREIGN KEY (OrderID)
+        REFERENCES customer_order (OrderID)
 );
 
 -- Create topping table
@@ -68,6 +70,7 @@ CREATE TABLE topping (
 CREATE TABLE pizza_topping (
     PizzaToppingPizzaID INT NOT NULL,
     PizzaToppingToppingID INT NOT NULL,
+    PizzaToppingIsDoubled INT DEFAULT 0 NOT NULL,
     PRIMARY KEY (PizzaToppingPizzaID, PizzaToppingToppingID),
     FOREIGN KEY (PizzaToppingPizzaID) REFERENCES pizza(PizzaID),
     FOREIGN KEY (PizzaToppingToppingID) REFERENCES topping(ToppingID)
@@ -122,7 +125,7 @@ CREATE TABLE pickup (
     PickupOrderID INT NOT NULL,
     PickupTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     PickupCustomerID INT NOT NULL,
-    isPickedUp INT NOT NULL,
+    isPickedUp INT DEFAULT 0 NOT NULL,
     PRIMARY KEY (PickupOrderID),
     FOREIGN KEY (PickupOrderID) REFERENCES customer_order(OrderID),
     FOREIGN KEY (PickupCustomerID) REFERENCES customer(CustomerID)

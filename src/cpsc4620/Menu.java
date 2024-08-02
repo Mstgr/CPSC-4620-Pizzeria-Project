@@ -28,10 +28,13 @@ public class Menu {
 
 	public static BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-	// I apologize in advance for this mess
-	// Do not have high expectations
-	// Life happened this weekend so this is the best I could throw together
-	// during this time
+	public static final int MAGIC_NUMBER_ONE = 1;
+	public static final int MAGIC_NUMBER_TWO = 2;
+	public static final int MAGIC_NUMBER_THREE = 3;
+	public static final int MAGIC_NUMBER_FOUR = 4;
+	public static final int MAGIC_NUMBER_SEVENT = 17;
+
+	// Thank you for the opportunity to submit this project.
 	public static void main(String[] args) throws SQLException, IOException {
 		
 
@@ -110,7 +113,7 @@ public class Menu {
 		orderOption = Integer.parseInt(option);
 
 		// Error Checking user for order options (Dine-in, Pick-up, Delivery)
-		while (orderOption < 0 || orderOption > 3){
+		while (orderOption < 0 || orderOption > MAGIC_NUMBER_THREE){
 			System.out.println("Invalid Choice. Please enter a valid choice below.");
 			System.out.println("Is this order for: \n1.) Dine-in\n2.) Pick-up\n3.) Delivery\nEnter the number of your choice:");
 			option = reader.readLine();
@@ -160,7 +163,7 @@ public class Menu {
 		// Now that we know who the user is we can finally start determining what they want
 		Order order;
 		int tableNumber;
-		if (orderOption == 1){
+		if (orderOption == MAGIC_NUMBER_ONE){
 			System.out.println("What is the table number for this order?");
 			String tableNum = reader.readLine();
 			tableNumber = Integer.parseInt(tableNum);
@@ -173,7 +176,7 @@ public class Menu {
 			order = new DineinOrder(0, customer.getCustID(), "", 0, 0, 0, tableNumber);
 
 			// Pickup Order option
-		}else if (orderOption == 2){
+		}else if (orderOption == MAGIC_NUMBER_TWO){
 			order = new PickupOrder(0, customer.getCustID(), "", 0, 0, 0, 0);
 		}else{
 			System.out.println("What is the House/Apt Number for this order? (e.g., 111)");
@@ -191,22 +194,25 @@ public class Menu {
 		}
 
 		DBNinja.addOrder(order);
-		// Order just got added Testing with this output here
-		// Timestamp now gets added automatically -> It works now :)
-		System.out.println("Current Order: " + order.getOrderID() + " Order Timestamp: " + order.getDate());
 
-		// Currently working here
 		System.out.println("Let's build a pizza!");
-		// Test Output
-		System.out.println("FOR CUSTOMER: " + order.getCustID() + " ORDER NUMBER: " + order.getOrderID());
-		buildPizza(order.getOrderID());
+		Pizza pizza = buildPizza(order.getOrderID());
+
+		// update order pricing after new pizza has been added
+		order.setCustPrice(order.getCustID() + pizza.getCustPrice());
+		order.setBusPrice(order.getBusPrice() + pizza.getBusPrice());
+		DBNinja.updateOrder(order.getOrderID(), order.getCustPrice(), order.getBusPrice());
 
 		System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
 		String stopInput = reader.readLine();
 		int stopPizzaInput = Integer.parseInt(stopInput);
 		while (stopPizzaInput != -1) {
+			Pizza pizza2 = buildPizza(order.getOrderID());
+			// update order pricing after new pizza has been added
+			order.setCustPrice(order.getCustID() + pizza2.getCustPrice());
+			order.setBusPrice(order.getBusPrice() + pizza2.getBusPrice());
+			DBNinja.updateOrder(order.getOrderID(), order.getCustPrice(), order.getBusPrice());
 			System.out.println("Enter -1 to stop adding pizzas...Enter anything else to continue adding pizzas to the order.");
-			buildPizza(order.getOrderID());
 			stopInput = reader.readLine();
 			stopPizzaInput = Integer.parseInt(stopInput);
 		}
@@ -235,6 +241,9 @@ public class Menu {
 				order.addDiscount(discount);
 			}
 		}
+
+		// Update order after potential discount
+		DBNinja.updateOrder(order.getOrderID(), order.getCustPrice(), order.getBusPrice());
 
 		System.out.println("Finished adding order...Returning to menu...");
 	}
@@ -274,7 +283,7 @@ public class Menu {
 		Customer customer = new Customer(0, name[0], name[1], phone);
 		DBNinja.addCustomer(customer);
 		// Test output
-		System.out.println("New Customer Added! Customer ID: " + customer.getCustID());
+		//System.out.println("New Customer Added! Customer ID: " + customer.getCustID());
 	}
 
 	// View any orders that are not marked as completed
@@ -332,7 +341,7 @@ public class Menu {
 		int orderID = Integer.parseInt(reader.readLine());
 		if (orderID == -1) return;
 
-		Order order = orders.stream().filter(o -> o.getOrderID() == orderID).findFirst().orElse(null);
+		Order order = DBNinja.getOrderById(orderID); // Helper method to fetch order details, including pizzas and discounts
 
 		if (order == null) {
 			System.out.println("Incorrect entry, returning to menu.");
@@ -341,6 +350,26 @@ public class Menu {
 
 		System.out.println("Order Details:");
 		System.out.println(order);
+
+		// Display pizza details + Pizza discounts
+		System.out.println("Pizzas in this order:");
+		for (Pizza pizza : order.getPizzaList()) {
+			System.out.println(pizza);
+			System.out.println("Pizza Discount:");
+			if (pizza.getDiscounts().isEmpty()){
+				System.out.println("No Discounts");
+			}else{
+				System.out.println("On PizzaID="+ pizza.getPizzaID() + ": " + pizza.getDiscounts());
+			}
+		}
+
+		// Display Order Discounts
+		System.out.println("Order Discounts:");
+		if (order.getDiscountList().isEmpty()){
+			System.out.println("No Discounts");
+		}else{
+			System.out.println(order.getDiscountList());
+		}
 	}
 
 	
@@ -370,14 +399,13 @@ public class Menu {
 
 		System.out.println("Which order would you like mark as complete? Enter the OrderID: ");
 		int orderID = Integer.parseInt(reader.readLine());
-		Order order = orders.stream().filter(o -> o.getOrderID() == orderID).findFirst().orElse(null);
+		// This line grabs the order
+		Order order = DBNinja.getOrderById(orderID);
 		if (order == null) {
 			System.out.println("Incorrect entry, not an option");
 			return;
 		}
-
 		DBNinja.completeOrder(order);
-
 	}
 
 	public static void ViewInventoryLevels() throws SQLException, IOException 
@@ -404,20 +432,26 @@ public class Menu {
 		/*
 		 * This should print the current inventory and then ask the user which topping (by ID) they want to add more to and how much to add
 		 */
-		
-		
+
 		// User Input Prompts...
 		ViewInventoryLevels();
 		System.out.println("Which topping do you want to add inventory to? Enter the number: ");
 		int toppingID = Integer.parseInt(reader.readLine());
-		Topping topping = DBNinja.findToppingByName(String.valueOf(toppingID));
-		if (topping == null) {
-			System.out.println("Incorrect entry, not an option");
-			return;
+		// User Input Error checking
+		while (toppingID < MAGIC_NUMBER_ONE || toppingID > MAGIC_NUMBER_SEVENT){
+			System.out.println("Invalid topping choice. Please enter a valid topping below.");
+			ViewInventoryLevels();
+			System.out.println("Which topping do you want to add inventory to? Enter the number: ");
+			toppingID = Integer.parseInt(reader.readLine());
 		}
+		Topping topping = DBNinja.getToppingById(toppingID);
 
 		System.out.println("How many units would you like to add? ");
 		double quantity = Double.parseDouble(reader.readLine());
+		while (quantity < 0){
+			System.out.println("Invalid Quantity Amount. Please enter a valid quantity.");
+			quantity = Double.parseDouble(reader.readLine());
+		}
 		DBNinja.addToInventory(topping, quantity);
 	}
 
@@ -439,59 +473,80 @@ public class Menu {
 		 * Once the discounts are added, we can return the pizza
 		 */
 
+		// Prompt user for pizza size
 		System.out.println("What size is the pizza?");
 		System.out.println("1. " + DBNinja.size_s);
 		System.out.println("2. " + DBNinja.size_m);
 		System.out.println("3. " + DBNinja.size_l);
 		System.out.println("4. " + DBNinja.size_xl);
 		System.out.println("Enter the corresponding number: ");
-		// Implement Error Checking Later
 		String sizeChoice = reader.readLine();
 		int pizzaSizeChoice = Integer.parseInt(sizeChoice);
 
-		switch (pizzaSizeChoice) {
-			case 1:
-				sizeChoice = DBNinja.size_s;
-				break;
-			case 2:
-				sizeChoice = DBNinja.size_m;
-				break;
-			case 3:
-				sizeChoice = DBNinja.size_l;
-				break;
-			case 4:
-				sizeChoice = DBNinja.size_xl;
-				break;
-			default:
-				throw new IllegalArgumentException("Invalid size choice");
+		// Input Error Checking
+		while (pizzaSizeChoice > MAGIC_NUMBER_FOUR || pizzaSizeChoice < MAGIC_NUMBER_ONE) {
+			System.out.println("Invalid pizza size. Please enter a valid size below.");
+			System.out.println("What size is the pizza?");
+			System.out.println("1. " + DBNinja.size_s);
+			System.out.println("2. " + DBNinja.size_m);
+			System.out.println("3. " + DBNinja.size_l);
+			System.out.println("4. " + DBNinja.size_xl);
+			System.out.println("Enter the corresponding number: ");
+			sizeChoice = reader.readLine();
+			pizzaSizeChoice = Integer.parseInt(sizeChoice);
 		}
 
+		switch (pizzaSizeChoice) {
+			case MAGIC_NUMBER_ONE:
+				sizeChoice = DBNinja.size_s;
+				break;
+			case MAGIC_NUMBER_TWO:
+				sizeChoice = DBNinja.size_m;
+				break;
+			case MAGIC_NUMBER_THREE:
+				sizeChoice = DBNinja.size_l;
+				break;
+			case MAGIC_NUMBER_FOUR:
+				sizeChoice = DBNinja.size_xl;
+				break;
+		}
+
+		// Prompt user for crust type
 		System.out.println("What crust for this pizza?");
 		System.out.println("1. " + DBNinja.crust_thin);
 		System.out.println("2. " + DBNinja.crust_orig);
 		System.out.println("3. " + DBNinja.crust_pan);
 		System.out.println("4. " + DBNinja.crust_gf);
 		System.out.println("Enter the corresponding number: ");
-
-		// Implement Error Checking Later
 		String crustChoice = reader.readLine();
 		int pizzaCrustChoice = Integer.parseInt(crustChoice);
 
+		// User input error checking
+		while (pizzaCrustChoice > MAGIC_NUMBER_FOUR || pizzaCrustChoice < MAGIC_NUMBER_ONE){
+			System.out.println("Invalid Crust choice. Please enter a valid choice below.");
+			System.out.println("What crust for this pizza?");
+			System.out.println("1. " + DBNinja.crust_thin);
+			System.out.println("2. " + DBNinja.crust_orig);
+			System.out.println("3. " + DBNinja.crust_pan);
+			System.out.println("4. " + DBNinja.crust_gf);
+			System.out.println("Enter the corresponding number: ");
+			crustChoice = reader.readLine();
+			pizzaCrustChoice = Integer.parseInt(crustChoice);
+		}
+
 		switch (pizzaCrustChoice) {
-			case 1:
+			case MAGIC_NUMBER_ONE:
 				crustChoice = DBNinja.crust_thin;
 				break;
-			case 2:
+			case MAGIC_NUMBER_TWO:
 				crustChoice = DBNinja.crust_orig;
 				break;
-			case 3:
+			case MAGIC_NUMBER_THREE:
 				crustChoice = DBNinja.crust_pan;
 				break;
-			case 4:
+			case MAGIC_NUMBER_FOUR:
 				crustChoice = DBNinja.crust_gf;
 				break;
-			default:
-				throw new IllegalArgumentException("Invalid crust choice");
 		}
 
 		// Get the base Price and Cost for the pizza
@@ -507,8 +562,17 @@ public class Menu {
 			int toppingID = Integer.parseInt(reader.readLine());
 			if (toppingID == -1) break;
 
+			// Quick Error checking for topping
+			while (toppingID < MAGIC_NUMBER_ONE || toppingID > MAGIC_NUMBER_SEVENT){
+				System.out.println("Invalid topping choice. Please enter a valid topping below.");
+				ViewInventoryLevels();
+				System.out.println("Which topping do you want to add? Enter the TopID. Enter -1 to stop adding toppings: ");
+				toppingID = Integer.parseInt(reader.readLine());
+				if (toppingID == -1) break;
+			}
+
+			if (toppingID == -1) break;
 			Topping topping = DBNinja.getToppingById(toppingID);
-			System.out.println("TEST OUTPUT: TOPPING NAME: " + topping.getTopName());
 
 			if (topping == null) {
 				System.out.println("Incorrect entry, not an option");
@@ -516,14 +580,63 @@ public class Menu {
 			}
 			// Add Error Checking Later
 			System.out.println("Do you want to add extra topping? Enter y/n");
-			boolean isDoubled = reader.readLine().equalsIgnoreCase("y");
+			String isDoubled = reader.readLine().toUpperCase();
+			// Input Error Checking
+			while (!isDoubled.equals("Y") && !isDoubled.equals("N")){
+				System.out.println("Invalid Choice. Please enter a valid choice below: ");
+				System.out.println("Do you want to add extra topping? Enter y/n");
+				isDoubled = reader.readLine().toUpperCase();
+			}
+			boolean toppingDoubled;
+			// Is the topping to be doubled?
+            toppingDoubled = isDoubled.equals("Y");
 
-			DBNinja.useTopping(pizza, topping, isDoubled);
+			// Calculate if we have enough topping
+			String pizzaSize = pizza.getSize();
+			double quantityToBeUsed = 0.0;
+			switch(pizzaSize){
+				case DBNinja.size_s:
+					quantityToBeUsed = topping.getPerAMT();
+					break;
+				case DBNinja.size_m:
+					quantityToBeUsed = topping.getMedAMT();
+					break;
+				case DBNinja.size_l:
+					quantityToBeUsed = topping.getLgAMT();
+					break;
+				case DBNinja.size_xl:
+					quantityToBeUsed = topping.getXLAMT();
+					break;
+			}
+			if (toppingDoubled){
+				quantityToBeUsed *= MAGIC_NUMBER_TWO;
+			}
+
+			// If the Current inventory - the quantity that is about to be used is greater than the
+			// Minimum level that that topping can be we use that topping -> so we don't "run" out
+			if (topping.getCurINVT() - quantityToBeUsed > topping.getMinINVT()){
+				DBNinja.useTopping(pizza, topping, toppingDoubled);
+			}else{
+				System.out.println(topping.getTopName() + " is currently unavailable. Please select a different topping.");
+			}
+			pizza.addToppings(topping, toppingDoubled);
+			DBNinja.updatePizza(pizza.getPizzaID(), pizza.getCustPrice(), pizza.getBusPrice());
 		}
 
-		// Need to add error checking here
+
+
+
 		System.out.println("Do you want to add discounts to this Pizza? Enter y/n?");
-		if (reader.readLine().equalsIgnoreCase("y")) {
+		String discountPizza = reader.readLine().toUpperCase();
+
+		// Error checking for discount pizza prompt
+		while (!discountPizza.equals("Y") && !discountPizza.equals("N")){
+			System.out.println("Invalid Choice. Please enter a valid choice below: ");
+			System.out.println("Do you want to add discounts to this Pizza? Enter y/n?");
+			discountPizza = reader.readLine().toUpperCase();
+		}
+
+		if (discountPizza.equals("Y")) {
 			while (true) {
 				// Print the discounts for the user (not making a helper function for this)
 				ArrayList<Discount> discounts = DBNinja.getDiscountList();
@@ -537,13 +650,13 @@ public class Menu {
 
 
 				Discount discount = DBNinja.getDiscountbyId(discountID);
-				// Test Output
-				System.out.println("TEST OUTPUT DISCOUNT: " +  discount.getDiscountName() + " DiscountID: " + discount.getDiscountID());
 				if (discount == null) {
 					System.out.println("Incorrect entry, not an option");
 					continue;
 				}
 
+				pizza.addDiscounts(discount);
+				DBNinja.updatePizza(pizza.getPizzaID(), pizza.getCustPrice(), pizza.getBusPrice());
 				DBNinja.usePizzaDiscount(pizza, discount);
 			}
 		}
